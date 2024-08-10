@@ -26,6 +26,7 @@ $(document).ready( function() {
     {start:"", end:"", text:"分类页面："},
     {start:"{{Catnav|人物|现实人物|各国人物|日本人}}{{Catmore}}[[分类:按声优分类]][[分类:日本人]]", end:"", text:"【声优】"},
     {start:"{{catnav|音乐|歌曲|各演出者歌曲}}[[分类:各演出者歌曲]]{{Catmore|", end:"}}", text:"【演出者歌曲】"},
+    {start:"", end:"", text:"快速MAR："},
     {start:"{{subst:MarkAsResolved/auto|status=r|comment=",end:"}}",text:"MAR 问题已解决"},
     {start:"{{subst:MarkAsResolved/auto|status=p|comment=",end:"}}",text:"MAR 问题已答复"},
     {start:"{{subst:MarkAsResolved/auto|status=n|comment=",end:"}}",text:"MAR 无人回复"},
