@@ -7,7 +7,7 @@ $(function () {
             "watchlist": "nochange",
             "minor": true,
             "tags": "Automation tool",
-            "summary": '从版本' + undoafter + '恢复到版本' + undoid,
+            "summary": '从版本' + undoid + '恢复到版本' + undoafter,
             "undo": undoid,
             "token": mw.user.tokens.values.editToken,
         };
