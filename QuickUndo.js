@@ -4,7 +4,7 @@ $(function () {
             "action": "edit",
             "format": "json",
             "pageid": pageid,
-            "watchlist": nochange,
+            "watchlist": "nochange",
             "minor": true,
             "tags": "Automation tool",
             "summary": '从版本' + undoafter + '恢复到版本' + undoid,
