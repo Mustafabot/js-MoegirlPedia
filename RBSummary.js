@@ -70,11 +70,6 @@ ele.onmouseover = $.noop;
 ele.onmouseout = $.noop;
 ele.onmousedown = $.noop;
 };
-/*在加载js时恢复回退按钮显示*/
-var RB = document.getElementsByClassName("mw-rollback-link");
-for(let i = 0; i < RB.length ; i++) {
-	RB[i].style.display='block';
-}
 var exit = function () {
 var rbcount = $("#rbcount");
 var count = 3;
