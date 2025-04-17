@@ -146,7 +146,7 @@ mw.loader.load( '//testingcf.jsdelivr.net/gh/Mustafabot/js-MoegiriPedia/Settings
     
             // TODO: better extern project support for possible change-tag? (needs currently change after init)
             if ( project === 'commonswiki' ) { mw.messages.set( { 'cat-a-lot-using-summary': '' } ); } else { // Reset
-                this.changeTag = '';
+                this.changeTag = 'Bot';
                 this.settings.redir_category = '';
             }
     
