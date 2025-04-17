@@ -1651,5 +1651,4 @@ mw.loader.load( '//testingcf.jsdelivr.net/gh/Mustafabot/js-MoegiriPedia/Settings
         return $box;
     };
     
-    }( jQuery, mediaWiki ) );
-    // </nowiki>
+    }( jQuery, mediaWiki ) )
