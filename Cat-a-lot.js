@@ -20,7 +20,11 @@
 /* eslint one-var:0, vars-on-top:0, no-underscore-dangle:0, valid-jsdoc:0,
 curly:0, camelcase:0, no-useless-escape:0, no-alert:0 */ // extends: wikimedia
 /* jshint unused:true, forin:false, smarttabs:true, loopfunc:true, browser:true */
-
+mw.loader.using(['jquery.ui.dialog','jquery.ui.draggable','jquery.ui.resizable','jquery.ui.button',"jquery.ui.progressbar",'jquery.ui.autocomplete',
+    'jquery.spinner','mediawiki.api.messages','mediawiki.cookie','mediawiki.util'], function(){
+            mw.loader.state("jquery.ui","ready");
+mw.loader.load( '//testingcf.jsdelivr.net/gh/Mustafabot/js-MoegiriPedia/SettingsUI.js');
+mw.loader.load( '//testingcf.jsdelivr.net/gh/Mustafabot/js-MoegiriPedia/SettingsManager.js');
 ( function ( $, mw ) {
     'use strict';
     
@@ -210,7 +214,7 @@ curly:0, camelcase:0, no-useless-escape:0, no-alert:0 */ // extends: wikimedia
             if ( ( mw.util.getParamValue( 'withJS' ) === 'MediaWiki:Gadget-Cat-a-lot.js' &&
                 !mw.util.getParamValue( 'withCSS' ) ) ||
                 mw.loader.getState( 'ext.gadget.Cat-a-lot' ) === 'registered' ) {
-                mw.loader.load( mw.config.get( 'wgServer' ) + '/w/index.php?title=MediaWiki:Gadget-Cat-a-lot.css&action=raw&ctype=text/css', 'text/css' );
+                mw.loader.load( '//testingcf.jsdelivr.net/gh/Mustafabot/js-MoegiriPedia/Cat-a-lot.css','text/css' );
                 // importStylesheet( 'MediaWiki:Gadget-Cat-a-lot.css' );
             }
     
