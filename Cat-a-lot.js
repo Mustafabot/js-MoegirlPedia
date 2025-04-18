@@ -20,10 +20,10 @@
 /* eslint one-var:0, vars-on-top:0, no-underscore-dangle:0, valid-jsdoc:0,
 curly:0, camelcase:0, no-useless-escape:0, no-alert:0 */ // extends: wikimedia
 /* jshint unused:true, forin:false, smarttabs:true, loopfunc:true, browser:true */
-mw.loader.using(['jquery.ui.dialog','jquery.ui.draggable','jquery.ui.resizable','jquery.ui.button',"jquery.ui.progressbar",'jquery.ui.autocomplete',
+/*mw.loader.using(['jquery.ui.dialog','jquery.ui.draggable','jquery.ui.resizable','jquery.ui.button',"jquery.ui.progressbar",'jquery.ui.autocomplete',
     'jquery.spinner','mediawiki.api.messages','mediawiki.cookie','mediawiki.util']), function(){
             mw.loader.state("jquery.ui","ready");
-    }
+    };*/
 mw.loader.load( '//testingcf.jsdelivr.net/gh/Mustafabot/js-MoegiriPedia/SettingsUI.js');
 mw.loader.load( '//testingcf.jsdelivr.net/gh/Mustafabot/js-MoegiriPedia/SettingsManager.js');
 ( function ( $, mw ) {
@@ -34,7 +34,7 @@ mw.loader.load( '//testingcf.jsdelivr.net/gh/Mustafabot/js-MoegiriPedia/Settings
         nsIDs = mw.config.get( 'wgNamespaceIds' ),
         userGrp = mw.config.get( 'wgUserGroups' ),
         project = mw.config.get( 'wgDBname' );
-    
+        noratelimit = userGrp?.some((group) => ['sysop', 'bot', 'flood'].includes(group));
     var msgs = {
     // Preferences
     // new: added 2012-09-19. Please translate.
@@ -121,18 +121,18 @@ mw.loader.load( '//testingcf.jsdelivr.net/gh/Mustafabot/js-MoegiriPedia/Settings
         searchmode: false,
         version: '4.77',
         setHeight: 450,
-        changeTag: 'Cat-a-lot',
+        changeTag: 'Bot',
     
         settings: {
         /* Any category in this category is deemed a disambiguation category; i.e., a category that should not contain
     any items, but that contains links to other categories where stuff should be categorized. If you don't have
     that concept on your wiki, set it to null. Use blanks, not underscores. */
-            disambig_category: 'Disambiguation categories', // Commons
+            disambig_category: '消歧义分类', // Commons
             /* Any category in this category is deemed a (soft) redirect to some other category defined by a link
     * to another non-blacklisted category. If your wiki doesn't have soft category redirects, set this to null.
     * If a soft-redirected category contains more than one link to another non-blacklisted category, it's considered
     * a disambiguation category instead. */
-            redir_category: 'Category redirects'
+            redir_category: '已重定向的分类'
     
         },
     
@@ -1530,7 +1530,7 @@ mw.loader.load( '//testingcf.jsdelivr.net/gh/Mustafabot/js-MoegiriPedia/Settings
         non = mw.config.get( 'wgUserName' );
         if ( non ) {
             if ( mw.config.get( 'wgRelevantUserName' ) === non ) { non = 0; } else {
-                $.each( [ 'sysop', 'filemover', 'editor', 'rollbacker', 'patroller', 'autopatrolled', 'image-reviewer', 'reviewer', 'extendedconfirmed' ], function ( i, v ) {
+                $.each( [ 'sysop', 'file-maintainer', 'patroller', 'bot', 'flood' ], function ( i, v ) {
                     non = $.inArray( v, userGrp ) === -1;
                     return non;
                 } );
