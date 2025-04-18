@@ -655,7 +655,7 @@ mw.loader.load( '//testingcf.jsdelivr.net/gh/Mustafabot/js-MoegiriPedia/Settings
                         // NOTE: This timer is here to make sure edits wait for each other.
                         // If CAL.getContent() and doAPICall() returned a correct Promise,
                         // then the timer would not be needed.
-                        promise = promise.then( () => timer( 1000 ) ).then( () => {
+                        promise = promise.then( () => timer( 20000 ) ).then( () => {
                             CAL.getContent( pages[ i ], targetcat, mode );
                         } );
                     }
