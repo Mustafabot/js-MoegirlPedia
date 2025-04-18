@@ -34,7 +34,6 @@ mw.loader.load( '//testingcf.jsdelivr.net/gh/Mustafabot/js-MoegiriPedia/Settings
         nsIDs = mw.config.get( 'wgNamespaceIds' ),
         userGrp = mw.config.get( 'wgUserGroups' ),
         project = mw.config.get( 'wgDBname' );
-        noratelimit = userGrp?.some((group) => ['sysop', 'bot', 'flood'].includes(group));
     var msgs = {
     // Preferences
     // new: added 2012-09-19. Please translate.
