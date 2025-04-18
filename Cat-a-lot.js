@@ -1192,7 +1192,7 @@ mw.loader.load( '//testingcf.jsdelivr.net/gh/Mustafabot/js-MoegiriPedia/Settings
                 bot: true,
                 starttimestamp: this.starttimestamp,
                 watchlist: this.settings.watchlist,
-                tags: this.changeTag,
+                tags: mw.config.get('wgUserGroups').includes('bot') ? 'Bot' : 'Automation tool',
                 token: this.edittoken
             };
             if ( this.settings.minor ) {
