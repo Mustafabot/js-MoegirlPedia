@@ -655,7 +655,7 @@ mw.loader.load( '//testingcf.jsdelivr.net/gh/Mustafabot/js-MoegiriPedia/Settings
                         // NOTE: This timer is here to make sure edits wait for each other.
                         // If CAL.getContent() and doAPICall() returned a correct Promise,
                         // then the timer would not be needed.
-                        promise = promise.then( () => timer( mw.config.get('wgUserGroups').includes('bot') ? 1000 : 21000 ) ).then( () => {
+                        promise = promise.then( () => timer( userGrp?.some((group) => ['bot', 'flood'].includes(group)) ? 1000 : 21000 ) ).then( () => {
                             CAL.getContent( pages[ i ], targetcat, mode );
                         } );
                     }
@@ -859,7 +859,7 @@ mw.loader.load( '//testingcf.jsdelivr.net/gh/Mustafabot/js-MoegiriPedia/Settings
                 starttimestamp: this.starttimestamp,
                 basetimestamp: timestamp,
                 watchlist: this.settings.watchlist,
-                tags:mw.config.get('wgUserGroups').includes('bot') ? 'Bot' : 'Automation tool',
+                tags:userGrp.includes('bot') ? 'Bot' : 'Automation tool',
                 token: this.edittoken
             };
             if ( this.settings.minor ) {
@@ -1192,7 +1192,7 @@ mw.loader.load( '//testingcf.jsdelivr.net/gh/Mustafabot/js-MoegiriPedia/Settings
                 bot: true,
                 starttimestamp: this.starttimestamp,
                 watchlist: this.settings.watchlist,
-                tags: mw.config.get('wgUserGroups').includes('bot') ? 'Bot' : 'Automation tool',
+                tags: userGrp.includes('bot') ? 'Bot' : 'Automation tool',
                 token: this.edittoken
             };
             if ( this.settings.minor ) {
