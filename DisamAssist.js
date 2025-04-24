@@ -26,7 +26,7 @@ window.DisamAssist = jQuery.extend( true, {
 		 * 消歧义页面的名称格式（如[[Example (消歧义)]]）
 		 */
 		 disamFormat:
-			'$1(消歧义页)', 
+			'$1', 
 		
 		/*
 		 * 用于匹配消歧义页面标题的正则表达式（当与页面主题不同时）
