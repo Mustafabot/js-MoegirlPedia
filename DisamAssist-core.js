@@ -190,7 +190,20 @@
 			var disamTitle = cfg.disamFormat.replace( '$1', title );
 			loadPage( disamTitle ).done( function( page ) {
 				// "Foo (disambiguation)" doesn't exist.
-				dfd.resolve( true );
+				if ( page.missing ) {
+					// We try to create it
+					page.content = cfg.redirectToDisam.replace( '$1', title );
+					var summary = txt.redirectSummary.replace( '$1', title );
+					savePage( disamTitle, page, summary, false, true ).done( function() {
+						dfd.resolve( true );
+					} ).fail( function( description ) {
+						error( description );
+						dfd.resolve( false );
+					} );
+				// It does exist
+				} else {
+					dfd.resolve( true );
+				}
 			} ).fail( function( description ) {
 				error( description );
 				dfd.resolve( false );
