@@ -1,1943 +1,1175 @@
 /**
-* Cat-a-lot
-* Changes category of multiple files
-*
-* @rev 00:13, 10 February 2018 (UTC)
-* @author Originally by Magnus Manske (2007)
-* @author RegExes by Ilmari Karonen (2010)
-* @author Completely rewritten by DieBuche (2010-2012)
-* @author Rillke (2012-2014)
-* @author Perhelion (2017)
-* @author Zache (2024)
+ * SPDX-License-Identifier: CC-BY-SA-4.0
+ * _addText: '{{Gadget Header|title1=Cat-a-lot.js|license=CC-BY-SA-4.0}}'
+ *
+ * Cat-a-lot
+ *
+ * @base {@link https://zh.wikipedia.org/wiki/MediaWiki:Gadget-Cat-a-lot.js}
+ * @base {@link https://commons.wikimedia.org/wiki/MediaWiki:Gadget-Cat-a-lot.js}
+ * @source {@link https://git.qiuwen.net.cn/InterfaceAdmin/QiuwenGadgets/src/branch/master/src/Cat-a-lot/modules/core.ts}
+ * @author Magnus Manske, Ilmari Karonen, DieBuche, 安忆 <i@anyi.in>
+ * @license CC-BY-SA-4.0 {@link https://www.qiuwenbaike.cn/wiki/H:CC-BY-SA-4.0}
+ */
 
-* Requires [[MediaWiki:Gadget-SettingsManager.js]] and [[MediaWiki:Gadget-SettingsUI.js]] (properly registered) for per-user-settings
-* Requires [[MediaWiki:Gadget-libAPI.js]] for editing
-*
-* READ THIS PAGE IF YOU WANT TO TRANSLATE OR USE THIS ON ANOTHER SITE:
-* http://commons.wikimedia.org/wiki/MediaWiki:Gadget-Cat-a-lot.js/translating
-* <nowiki>
+/**
+ * SPDX-License-Identifier: CC-BY-SA-4.0
+ * _addText: '{{Gadget Header|title2=Cat-a-lot Messages|license2=CC-BY-SA-4.0}}'
+ *
+ * Cat-a-lot messages
+ *
+ * @base {@link https://commons.wikimedia.org/wiki/MediaWiki:Gadget-Cat-a-lot.js/zh-hans}
+ * @base {@link https://commons.wikimedia.org/wiki/MediaWiki:Gadget-Cat-a-lot.js/zh-hant}
+ * @source {@link https://git.qiuwen.net.cn/InterfaceAdmin/QiuwenGadgets/src/branch/master/src/Cat-a-lot/modules/messages.ts}
+ * @license CC-BY-SA-4.0 {@link https://www.qiuwenbaike.cn/wiki/H:CC-BY-SA-4.0}
+ */
+
+/**
+ * SPDX-License-Identifier: CC-BY-SA-4.0
+ * _addText: '{{Gadget Header|title3=jQuery checkboxShiftClick|license3=CC-BY-SA-4.0}}'
+ *
+ * jQuery checkboxShiftClick
+ *
+ * @description This will enable checkboxes to be checked or unchecked in a row by clicking one, holding shift and clicking another one
+ * @base {@link https://commons.wikimedia.org/wiki/MediaWiki:Gadget-Cat-a-lot.js}
+ * @source {@link https://git.qiuwen.net.cn/InterfaceAdmin/QiuwenGadgets/src/branch/master/src/Cat-a-lot/modules/extendJQueryPrototype.ts}
+ * @author Krinkle <krinklemail@gmail.com>
+ * @license CC-BY-SA-4.0 {@link https://www.qiuwenbaike.cn/wiki/H:CC-BY-SA-4.0}
+ */
+
+/**
+ * Hereby releasing jquery.checkboxShiftClick into CC BY-SA 3.0,
+ * CC BY 4.0, CC-0 and for all intends and purpose in the public
+ * domain, so as to not need this annotation.
+ *
+ * @source {@link https://commons.wikimedia.org/w/index.php?oldid=365723751}
 */
+/**
+ * +------------------------------------------------------------+
+ * |            === WARNING: GLOBAL GADGET FILE ===             |
+ * +------------------------------------------------------------+
+ * |       All changes should be made in the repository,        |
+ * |                otherwise they will be lost.                |
+ * +------------------------------------------------------------+
+ * |        Changes to this page may affect many users.         |
+ * | Please discuss changes by opening an issue before editing. |
+ * +------------------------------------------------------------+
+ */
+/* <nowiki> */
 
-/* global jQuery, mediaWiki */
-/* eslint one-var:0, vars-on-top:0, no-underscore-dangle:0, valid-jsdoc:0,
-curly:0, camelcase:0, no-useless-escape:0, no-alert:0 */ // extends: wikimedia
-/* jshint unused:true, forin:false, smarttabs:true, loopfunc:true, browser:true */
-mw.loader.load( '//testingcf.jsdelivr.net/gh/Mustafabot/js-MoegiriPedia/SettingsUI.js');
-mw.loader.load( '//testingcf.jsdelivr.net/gh/Mustafabot/js-MoegiriPedia/SettingsManager.js');
-( function ( $, mw ) {
-	'use strict';
+(() => {
+
+	"use strict";
 	
-	var formattedNS = mw.config.get( 'wgFormattedNamespaces' ),
-		ns = mw.config.get( 'wgNamespaceNumber' ),
-		nsIDs = mw.config.get( 'wgNamespaceIds' ),
-		userGrp = mw.config.get( 'wgUserGroups' ),
-		project = mw.config.get( 'wgDBname' );
-	
-	var msgs = {
-	// Preferences
-	// new: added 2012-09-19. Please translate.
-	// Use user language for i18n
-		'cat-a-lot-watchlistpref': 'Watchlist preference concerning files edited with Cat-a-lot',
-		'cat-a-lot-watch_pref': 'According to your general preferences',
-		'cat-a-lot-watch_nochange': 'Do not change watchstatus',
-		'cat-a-lot-watch_watch': 'Watch pages edited with Cat-a-lot',
-		'cat-a-lot-watch_unwatch': 'Remove pages while editing with Cat-a-lot from your watchlist',
-		'cat-a-lot-minorpref': 'Mark edits as minor (if you generally mark your edits as minor, this won’t change anything)',
-		'cat-a-lot-editpagespref': 'Allow categorising pages (including categories) that are not files',
-		'cat-a-lot-docleanuppref': 'Remove {{Check categories}} and other minor cleanup',
-		'cat-a-lot-uncatpref': 'Remove {{Uncategorized}}',
-		'cat-a-lot-subcatcountpref': 'Sub-categories to show at most',
-		'cat-a-lot-config-settings': 'Preferences',
-		'cat-a-lot-buttonpref': 'Use buttons instead of text-links',
-		'cat-a-lot-comment-label': 'Custom edit comment',
-	
-		// Progress
-		'cat-a-lot-loading': 'Loading…',
-		'cat-a-lot-editing': 'Editing page',
-		'cat-a-lot-of': 'of ',
-		'cat-a-lot-skipped-already': 'The following {{PLURAL:$1|1=page was|$1 pages were}} skipped, because the page was already in the category:',
-		'cat-a-lot-skipped-not-found': 'The following {{PLURAL:$1|1=page was|$1 pages were}} skipped, because the old category could not be found:',
-		'cat-a-lot-skipped-server': 'The following {{PLURAL:$1|1=page|$1 pages}} couldn’t be changed, since there were problems connecting to the server:',
-		'cat-a-lot-all-done': 'All pages are processed.',
-		'cat-a-lot-done': 'Done!', // mw.msg("Feedback-close")
-		'cat-a-lot-added-cat': 'Added category $1',
-		'cat-a-lot-copied-cat': 'Copied to category $1',
-		'cat-a-lot-moved-cat': 'Moved to category $1',
-		'cat-a-lot-removed-cat': 'Removed from category $1',
-		// 'cat-a-lot-return-to-page': 'Return to page',
-		// 'cat-a-lot-cat-not-found': 'Category not found.',
-	
-		// as in 17 files selected
-		'cat-a-lot-files-selected': '{{PLURAL:$1|1=One file|$1 files}} selected.',
-		'cat-a-lot-pe_file': '$1 {{PLURAL:$1|page|pages}} of $2 affected',
-		'cat-a-lot-parent-cat': 'Has parent-category: ',
-		'cat-a-lot-sub-cat': 'Has sub-category: ',
-	
-		// Actions
-		'cat-a-lot-copy': 'Copy',
-		'cat-a-lot-move': 'Move',
-		'cat-a-lot-add': 'Add',
-		// 'cat-a-lot-remove-from-cat': 'Remove from this category',
-		'cat-a-lot-overcat': 'Check over-categorization',
-		'cat-a-lot-enter-name': 'Enter category name',
-		'cat-a-lot-select': 'Select',
-		'cat-a-lot-all': 'all',
-		'cat-a-lot-none': 'none',
-		// 'cat-a-lot-none-selected': 'No files selected!', 'Ooui-selectfile-placeholder'
-	
-		// Summaries (project language):
-		'cat-a-lot-pref-save-summary': 'Updating user preferences',
-		'cat-a-lot-summary-add': 'Adding [[Category:$1]]',
-		'cat-a-lot-summary-copy': 'Copying from [[Category:$1]] to [[Category:$2]]',
-		'cat-a-lot-summary-move': 'Moving from [[Category:$1]] to [[Category:$2]]',
-		'cat-a-lot-summary-remove': 'Removing from [[Category:$1]]',
-		'cat-a-lot-prefix-summary': '',
-		'cat-a-lot-using-summary': ' using [[c:Help:Cat-a-lot|Cat-a-lot]]'
-	};
-	mw.messages.set( msgs );
-	
-	function msg( /* params */ ) {
-		var args = Array.prototype.slice.call( arguments, 0 );
-		args[ 0 ] = 'cat-a-lot-' + args[ 0 ];
-		return ( args.length === 1 ) ?
-			mw.message( args[ 0 ] ).plain() :
-			mw.message.apply( mw.message, args ).parse();
+	// dist/Cat-a-lot/Cat-a-lot.js
+	var _templateObject;
+	var _templateObject2;
+	var _templateObject3;
+	function asyncGeneratorStep(n, t, e, r, o, a, c) {
+	  try {
+		var i = n[a](c), u = i.value;
+	  } catch (n2) {
+		return void e(n2);
+	  }
+	  i.done ? t(u) : Promise.resolve(u).then(r, o);
 	}
-	
-	// There is only one Cat-a-lot on one page
-	var $body, $container, $dataContainer, $searchInputContainer, $searchInput, $resultList, $markCounter, $selections,
-		$selectFiles, $selectPages, $selectNone, $selectInvert, $settingsWrapper, $settingsLink, $head, $link, $overcat,
-		commonsURL = 'https://commons.wikimedia.org/w/index.php',
-		is_rtl = $( 'body' ).hasClass( 'rtl' ),
-		reCat, // localized category search regexp
-		non,
-		r; // result file count for overcat
-	
-	var CAL = mw.libs.catALot = {
-		apiUrl: mw.util.wikiScript( 'api' ),
-		origin: '',
-		searchmode: false,
-		version: '4.77',
-		setHeight: 450,
-		changeTag: userGrp.includes('bot') ? 'Bot' : 'Automation tool',
-		maxSimultaneousReq: 2,
-	
-		settings: {
-		/* Any category in this category is deemed a disambiguation category; i.e., a category that should not contain
-	any items, but that contains links to other categories where stuff should be categorized. If you don't have
-	that concept on your wiki, set it to null. Use blanks, not underscores. */
-			disambig_category: 'Disambiguation categories', // Commons
-			/* Any category in this category is deemed a (soft) redirect to some other category defined by a link
-	* to another non-blacklisted category. If your wiki doesn't have soft category redirects, set this to null.
-	* If a soft-redirected category contains more than one link to another non-blacklisted category, it's considered
-	* a disambiguation category instead. */
-			redir_category: 'Category redirects'
-	
-		},
-	
-		init: function () {
-			// Prevent historical double marker (maybe remove in future)
-			if ( /Cat-?a-?lot/i.test( msgs[ 'cat-a-lot-pref-save-summary' ] ) ) { mw.messages.set( { 'cat-a-lot-prefix-summary': '', 'cat-a-lot-using-summary': '' } ); } else {
-				mw.messages.set( {
-					'cat-a-lot-pref-save-summary': msgs[ 'cat-a-lot-prefix-summary' ] + msgs[ 'cat-a-lot-pref-save-summary' ] + msgs[ 'cat-a-lot-using-summary' ]
-				} );
-			}
-	
-			// TODO: better extern project support for possible change-tag? (needs currently change after init)
-			if ( project === 'commonswiki' ) { mw.messages.set( { 'cat-a-lot-using-summary': '' } ); } else { // Reset
-				this.changeTag = userGrp.includes('bot') ? 'Bot' : 'Automation tool';
-				this.settings.redir_category = '';
-			}
-	
-			this._initSettings();
-			$body = $( document.body );
-			$container = $( '<div>' )
-				.attr( 'id', 'cat_a_lot' )
-				.appendTo( $body );
-			$dataContainer = $( '<div>' )
-				.attr( 'id', 'cat_a_lot_data' )
-				.appendTo( $container );
-			$searchInputContainer = $( '<div>' )
-				.appendTo( $dataContainer );
-			$searchInput = $( '<input>', {
-				id: 'cat_a_lot_searchcatname',
-				placeholder: msg( 'enter-name' ),
-				type: 'text'
-			} )
-				.appendTo( $searchInputContainer );
-			$resultList = $( '<div>' )
-				.attr( 'id', 'cat_a_lot_category_list' )
-				.appendTo( $dataContainer );
-			$markCounter = $( '<div>' )
-				.attr( 'id', 'cat_a_lot_mark_counter' )
-				.appendTo( $dataContainer );
-			$selections = $( '<div>' )
-				.attr( 'id', 'cat_a_lot_selections' )
-				.text( msg( 'select' ) + ':' )
-				.appendTo( $dataContainer );
-			$settingsWrapper = $( '<div>' )
-				.attr( 'id', 'cat_a_lot_settings' )
-				.appendTo( $dataContainer );
-			$settingsLink = $( '<a>', {
-				id: 'cat_a_lot_config_settings',
-				title: 'Version ' + this.version,
-				text: msg( 'config-settings' )
-			} )
-				.appendTo( $settingsWrapper );
-			$head = $( '<div>' )
-				.attr( 'id', 'cat_a_lot_head' )
-				.appendTo( $container );
-			$link = $( '<a>' )
-				.attr( 'id', 'cat_a_lot_toggle' )
-				.text( 'Cat-a-lot' )
-				.appendTo( $head );
-			$settingsWrapper.append( $( '<a>', {
-				href: commonsURL + '?title=Special:MyLanguage/Help:Gadget-Cat-a-lot',
-				target: '_blank',
-				style: 'float:right',
-				title: ( $( '#n-help a' ).attr( 'title' ) || '' ) + ' (v. ' + this.version + ')'
-			} ).text( $( '#mw-indicator-mw-helplink a' ).text() || '?' ) );
-			$container.one( 'mouseover', function () { // Try load on demand earliest as possible
-				mw.loader.load( [ 'jquery.ui'] );
-			} );
-	
-			if ( this.origin && !non ) {
-				$overcat = $( '<a>' )
-					.attr( 'id', 'cat_a_lot_overcat' )
-					.html( msg( 'overcat' ) )
-					.on( 'click', function ( e ) {
-						CAL.getOverCat( e );
-					} )
-					.insertBefore( $selections );
-			}
-	
-			if ( ( mw.util.getParamValue( 'withJS' ) === 'MediaWiki:Gadget-Cat-a-lot.js' &&
-				!mw.util.getParamValue( 'withCSS' ) ) ||
-				mw.loader.getState( 'ext.gadget.Cat-a-lot' ) === 'registered' ) {
-				mw.loader.load( mw.config.get( 'wgServer' ) + '/w/index.php?title=MediaWiki:Gadget-Cat-a-lot.css&action=raw&ctype=text/css', 'text/css' );
-				// importStylesheet( 'MediaWiki:Gadget-Cat-a-lot.css' );
-			}
-	
-			// Loading MediaWiki:Gadget-libAPI using mw.loader.load() so libAPI will work in other wikis too
-			mw.loader.using( [ 'mediawiki.util','mediawiki.user','user.options' ], function () {
-				mw.loader.load( '//testingcf.jsdelivr.net/gh/Mustafabot/js-MoegiriPedia/libAPI.js' );
+	function _asyncToGenerator(n) {
+	  return function() {
+		var t = this, e = arguments;
+		return new Promise(function(r, o) {
+		  var a = n.apply(t, e);
+		  function _next(n2) {
+			asyncGeneratorStep(a, r, o, _next, _throw, "next", n2);
+		  }
+		  function _throw(n2) {
+			asyncGeneratorStep(a, r, o, _next, _throw, "throw", n2);
+		  }
+		  _next(void 0);
+		});
+	  };
+	}
+	function _taggedTemplateLiteral(e, t) {
+	  return t || (t = e.slice(0)), Object.freeze(Object.defineProperties(e, { raw: { value: Object.freeze(t) } }));
+	}
+	function _createForOfIteratorHelper(r, e) {
+	  var t = "undefined" != typeof Symbol && r[Symbol.iterator] || r["@@iterator"];
+	  if (!t) {
+		if (Array.isArray(r) || (t = _unsupportedIterableToArray(r)) || e && r && "number" == typeof r.length) {
+		  t && (r = t);
+		  var n = 0, F = function() {
+		  };
+		  return { s: F, n: function() {
+			return n >= r.length ? { done: true } : { done: false, value: r[n++] };
+		  }, e: function(r2) {
+			throw r2;
+		  }, f: F };
+		}
+		throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+	  }
+	  var o, a = true, u = false;
+	  return { s: function() {
+		t = t.call(r);
+	  }, n: function() {
+		var r2 = t.next();
+		return a = r2.done, r2;
+	  }, e: function(r2) {
+		u = true, o = r2;
+	  }, f: function() {
+		try {
+		  a || null == t.return || t.return();
+		} finally {
+		  if (u) throw o;
+		}
+	  } };
+	}
+	function _unsupportedIterableToArray(r, a) {
+	  if (r) {
+		if ("string" == typeof r) return _arrayLikeToArray(r, a);
+		var t = {}.toString.call(r).slice(8, -1);
+		return "Object" === t && r.constructor && (t = r.constructor.name), "Map" === t || "Set" === t ? Array.from(r) : "Arguments" === t || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t) ? _arrayLikeToArray(r, a) : void 0;
+	  }
+	}
+	function _arrayLikeToArray(r, a) {
+	  (null == a || a > r.length) && (a = r.length);
+	  for (var e = 0, n = Array(a); e < a; e++) n[e] = r[e];
+	  return n;
+	}
+	var __create = Object.create;
+	var __defProp = Object.defineProperty;
+	var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+	var __getOwnPropNames = Object.getOwnPropertyNames;
+	var __getProtoOf = Object.getPrototypeOf;
+	var __hasOwnProp = Object.prototype.hasOwnProperty;
+	var __copyProps = (to, from, except, desc) => {
+	  if (from && typeof from === "object" || typeof from === "function") {
+		var _iterator = _createForOfIteratorHelper(__getOwnPropNames(from)), _step;
+		try {
+		  for (_iterator.s(); !(_step = _iterator.n()).done; ) {
+			let key = _step.value;
+			if (!__hasOwnProp.call(to, key) && key !== except) __defProp(to, key, {
+			  get: () => from[key],
+			  enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable
 			});
-			
-			reCat = new RegExp( '^\\s*' + CAL.localizedRegex( 14, 'Category' ) + ':', '' );
-	
-			$searchInput.on( 'keypress', function ( e ) {
-				if ( e.which === 13 ) {
-					CAL.updateCats( $.trim( $( this ).val().replace( /[\u200E\u200F\u202A-\u202E]/g, '' ) ) );
-					mw.cookie.set( 'catAlot', CAL.currentCategory );
+		  }
+		} catch (err) {
+		  _iterator.e(err);
+		} finally {
+		  _iterator.f();
+		}
+	  }
+	  return to;
+	};
+	var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
+	  // If the importer is in node compatibility mode or this is not an ESM
+	  // file that has been converted to a CommonJS file using a Babel-
+	  // compatible transform (i.e. "__esModule" has not been set), then set
+	  // "default" to the CommonJS "module.exports" for node compatibility.
+	  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", {
+		value: mod,
+		enumerable: true
+	  }) : target,
+	  mod
+	));
+	//! src/Cat-a-lot/options.json
+	var apiTag = mw.config.get( 'wgUserGroups' ).includes('bot') ? 'Bot' : 'Automation tool';
+	var targetNamespace = 14;
+	var version = "6.0";
+	var storageKey = "ext.gadget.Cat-a-Lot_results-";
+	//! src/Cat-a-lot/modules/constant.ts
+	var CLASS_NAME = "gadget-cat_a_lot";
+	var CLASS_NAME_CONTAINER = "".concat(CLASS_NAME, "-container");
+	var CLASS_NAME_CONTAINER_DATA = "".concat(CLASS_NAME_CONTAINER, "__data");
+	var CLASS_NAME_CONTAINER_DATA_CATEGORY_LIST = "".concat(CLASS_NAME_CONTAINER_DATA, "__category-list");
+	var CLASS_NAME_CONTAINER_DATA_CATEGORY_LIST_ACTION = "".concat(CLASS_NAME_CONTAINER_DATA_CATEGORY_LIST, "__action");
+	var CLASS_NAME_CONTAINER_DATA_CATEGORY_LIST_NO_FOUND = "".concat(CLASS_NAME_CONTAINER_DATA_CATEGORY_LIST, "--no-found");
+	var CLASS_NAME_CONTAINER_DATA_MARK_COUNTER = "".concat(CLASS_NAME_CONTAINER_DATA, "__mark-counter");
+	var CLASS_NAME_CONTAINER_DATA_SEARCH_INPUT_CONTAINER_INPUT = "".concat(CLASS_NAME_CONTAINER_DATA, "__search-input-container__input");
+	var CLASS_NAME_CONTAINER_DATA_SELECTIONS = "".concat(CLASS_NAME_CONTAINER_DATA, "__selections");
+	var CLASS_NAME_CONTAINER_DATA_SELECTIONS_ALL = "".concat(CLASS_NAME_CONTAINER_DATA_SELECTIONS, "__all");
+	var CLASS_NAME_CONTAINER_DATA_SELECTIONS_NONE = "".concat(CLASS_NAME_CONTAINER_DATA_SELECTIONS, "__none");
+	var CLASS_NAME_CONTAINER_HEAD = "".concat(CLASS_NAME_CONTAINER, "__head");
+	var CLASS_NAME_CONTAINER_HEAD_LINK = "".concat(CLASS_NAME_CONTAINER_HEAD, "__link");
+	var CLASS_NAME_CONTAINER_HEAD_LINK_ENABLED = "".concat(CLASS_NAME_CONTAINER_HEAD_LINK, "--enabled");
+	var CLASS_NAME_CURRENT_COUNTER = "".concat(CLASS_NAME, "-current_counter");
+	var CLASS_NAME_FEEDBACK = "".concat(CLASS_NAME, "-feedback");
+	var CLASS_NAME_FEEDBACK_DONE = "".concat(CLASS_NAME_FEEDBACK, "--done");
+	var CLASS_NAME_LABEL = "".concat(CLASS_NAME, "-label");
+	var CLASS_NAME_LABEL_DONE = "".concat(CLASS_NAME_LABEL, "--done");
+	var CLASS_NAME_LABEL_LAST_SELECTED = "".concat(CLASS_NAME_LABEL, "--last-selected");
+	var CLASS_NAME_LABEL_SELECTED = "".concat(CLASS_NAME_LABEL, "--selected");
+	var DEFAULT_SETTING = {
+	  docleanup: {
+		default: false,
+		label_i18n: "docleanuppref"
+	  },
+	  editpages: {
+		default: true,
+		label_i18n: "editpagespref"
+	  },
+	  minor: {
+		default: false,
+		label_i18n: "minorpref"
+	  },
+	  subcatcount: {
+		default: 50,
+		label_i18n: "subcatcountpref"
+	  },
+	  watchlist: {
+		default: "preferences",
+		label_i18n: "watchlistpref",
+		select_i18n: {
+		  watch_nochange: "nochange",
+		  watch_pref: "preferences",
+		  watch_unwatch: "unwatch",
+		  watch_watch: "watch"
+		}
+	  }
+	};
+	var VARIANTS = ["zh-hans", "zh-hant", "zh-cn","zh-hk","zh-tw"];
+	//! src/Cat-a-lot/modules/messages.ts
+	var {
+	  wgUserLanguage
+	} = mw.config.get();
+	var DEFAULT_MESSAGES = {
+	  // as in 17 files selected
+	  "cat-a-lot-files-selected": "{{PLURAL:$1|One file|$1 files}} selected.",
+	  // Actions
+	  "cat-a-lot-copy": "Copy",
+	  "cat-a-lot-move": "Move",
+	  "cat-a-lot-add": "Add",
+	  "cat-a-lot-remove-from-cat": "Remove from this category",
+	  "cat-a-lot-enter-name": "Enter category name",
+	  "cat-a-lot-select": "Select",
+	  "cat-a-lot-all": "all",
+	  "cat-a-lot-none": "none",
+	  "cat-a-lot-none-selected": "No files selected!",
+	  // Preferences
+	  "cat-a-lot-watchlistpref": "Watchlist preference concerning files edited with Cat-A-Lot",
+	  "cat-a-lot-watch_pref": "According to your general preferences",
+	  "cat-a-lot-watch_nochange": "Do not change watchstatus",
+	  "cat-a-lot-watch_watch": "Watch pages edited with Cat-A-Lot",
+	  "cat-a-lot-watch_unwatch": "Remove pages while editing with Cat-A-Lot from your watchlist",
+	  "cat-a-lot-minorpref": "Mark edits as minor (if you generally mark your edits as minor, this won't change anything)",
+	  "cat-a-lot-editpagespref": "Allow categorising pages (including categories) that are not files",
+	  "cat-a-lot-docleanuppref": "Remove {{Check categories}} and other minor cleanup",
+	  "cat-a-lot-subcatcountpref": "Sub-categories to show at most",
+	  // Progress
+	  "cat-a-lot-loading": "Loading...",
+	  "cat-a-lot-editing": "Editing page",
+	  "cat-a-lot-of": "of ",
+	  "cat-a-lot-skipped-already": "The following {{PLURAL:$1|page was|$1 pages were}} skipped, because the page was already in the category:",
+	  "cat-a-lot-skipped-not-found": "The following {{PLURAL:$1|page was|$1 pages were}} skipped, because the old category could not be found:",
+	  "cat-a-lot-skipped-server": "The following {{PLURAL:$1|page|$1 pages}} couldn't be changed, since there were problems connecting to the server:",
+	  "cat-a-lot-all-done": "All pages are processed.",
+	  "cat-a-lot-done": "Done!",
+	  "cat-a-lot-added-cat": "Added category $1",
+	  "cat-a-lot-copied-cat": "Copied to category $1",
+	  "cat-a-lot-moved-cat": "Moved to category $1",
+	  "cat-a-lot-removed-cat": "Removed from category $1",
+	  "cat-a-lot-return-to-page": "Return to page",
+	  "cat-a-lot-cat-not-found": "Category not found.",
+	  // Summaries:
+	  "cat-a-lot-summary-add": "[[U:没有羽翼的格雷塔/Cat-a-lot|Cat-a-lot]]: Adding [[Category:$1]]",
+	  "cat-a-lot-summary-copy": "[[U:没有羽翼的格雷塔/Cat-a-lot|Cat-a-lot]]: Copying from [[Category:$1]] to [[Category:$2]]",
+	  "cat-a-lot-summary-move": "[[U:没有羽翼的格雷塔/Cat-a-lot|Cat-a-lot]]: Moving from [[Category:$1]] to [[Category:$2]]",
+	  "cat-a-lot-summary-remove": "[[U:没有羽翼的格雷塔/Cat-a-lot|Cat-a-lot]]: Removing from [[Category:$1]]"
+	};
+	var setMessages = () => {
+	  /*! Cat-a-lot messages | CC-BY-SA-4.0 <https://qwbk.cc/H:CC-BY-SA-4.0> */
+	  if (wgUserLanguage === "en") {
+		return;
+	  }
+	  if (["zh-hant", "zh-hk", "zh-tw"].includes(wgUserLanguage)) {
+		mw.messages.set({
+		  // as in 17 files selected
+		  "cat-a-lot-files-selected": "$1個文件已選擇",
+		  // Actions
+		  "cat-a-lot-copy": "複製",
+		  "cat-a-lot-move": "移動",
+		  "cat-a-lot-add": "增加",
+		  "cat-a-lot-remove-from-cat": "從此分類移除",
+		  "cat-a-lot-enter-name": "輸入分類名稱",
+		  "cat-a-lot-select": "選擇",
+		  "cat-a-lot-all": "全部",
+		  "cat-a-lot-none": "無",
+		  "cat-a-lot-none-selected": "沒有選擇文件！",
+		  // Preferences
+		  "cat-a-lot-watchlistpref": "使用Cat-A-Lot編輯文件時的監視列表選項",
+		  "cat-a-lot-watch_pref": "與系統參數設置相同",
+		  "cat-a-lot-watch_nochange": "不要更改監視狀態",
+		  "cat-a-lot-watch_watch": "監視使用Cat-A-Lot編輯的頁面",
+		  "cat-a-lot-watch_unwatch": "將使用Cat-A-Lot編輯的頁面從監視列表移除",
+		  "cat-a-lot-minorpref": "將編輯標記爲小修改（若您在系統參數設置中已設置將所有編輯標記爲小修改，此選項不會對現有行爲進行改動）",
+		  "cat-a-lot-editpagespref": "允許對不是文件的頁面和子分類進行分類操作",
+		  "cat-a-lot-docleanuppref": "移除{{Check categories}}並進行其他細節清理",
+		  "cat-a-lot-subcatcountpref": "最多顯示的子分類數量",
+		  // Progress
+		  "cat-a-lot-loading": "正在加載……",
+		  "cat-a-lot-editing": "正在編輯頁面",
+		  "cat-a-lot-of": "，共有",
+		  "cat-a-lot-skipped-already": "以下頁面已跳過，因爲頁面已經在分類中：",
+		  "cat-a-lot-skipped-not-found": "以下頁面已跳過，因爲找不到現有分類：",
+		  "cat-a-lot-skipped-server": "以下頁面無法編輯，因爲連接服務器出錯：",
+		  "cat-a-lot-all-done": "全部頁面已處理。",
+		  "cat-a-lot-done": "已完成！",
+		  "cat-a-lot-added-cat": "已加入分類",
+		  "cat-a-lot-copied-cat": "已複製到分類",
+		  "cat-a-lot-moved-cat": "已移動到分類",
+		  "cat-a-lot-removed-cat": "已從分類移除",
+		  "cat-a-lot-return-to-page": "返回到頁面",
+		  "cat-a-lot-cat-not-found": "找不到分類。",
+		  // Summaries
+		  "cat-a-lot-summary-add": "[[U:没有羽翼的格雷塔/Cat-a-lot|Cat-a-lot]]：加入分類[[Category:$1]]",
+		  "cat-a-lot-summary-copy": "[[U:没有羽翼的格雷塔/Cat-a-lot|Cat-a-lot]]：分類間複製：從[[Category:$1]]到[[Category:$2]]",
+		  "cat-a-lot-summary-move": "[[U:没有羽翼的格雷塔/Cat-a-lot|Cat-a-lot]]：分類間移動：從[[Category:$1]]到[[Category:$2]]",
+		  "cat-a-lot-summary-remove": "[[U:没有羽翼的格雷塔/Cat-a-lot|Cat-a-lot]]：從分類移除：[[Category:$1]]"
+		});
+	  } else {
+		mw.messages.set({
+		  // as in 17 files selected
+		  "cat-a-lot-files-selected": "已选择$1个页面或文件",
+		  // Actions
+		  "cat-a-lot-copy": "复制",
+		  "cat-a-lot-move": "移动",
+		  "cat-a-lot-add": "增加",
+		  "cat-a-lot-remove-from-cat": "从此分类移除",
+		  "cat-a-lot-enter-name": "输入分类名称",
+		  "cat-a-lot-select": "选择",
+		  "cat-a-lot-all": "全部",
+		  "cat-a-lot-none": "无",
+		  "cat-a-lot-none-selected": "没有选择任何页面或文件！",
+		  // Preferences
+		  "cat-a-lot-watchlistpref": "使用Cat-a-lot编辑文件时的监视列表选项",
+		  "cat-a-lot-watch_pref": "与系统参数设置相同",
+		  "cat-a-lot-watch_nochange": "不要更改监视状态",
+		  "cat-a-lot-watch_watch": "监视使用Cat-a-lot编辑的页面",
+		  "cat-a-lot-watch_unwatch": "将使用Cat-a-lot编辑的页面从监视列表移除",
+		  "cat-a-lot-minorpref": "将编辑标记为小修改（若您在系统参数设置中已设置将所有编辑标记为小修改，此选项不会对现有行为进行改动）",
+		  "cat-a-lot-editpagespref": "允许对不是文件的页面和子分类进行分类操作",
+		  "cat-a-lot-docleanuppref": "移除{{Check categories}}并进行其他细节清理",
+		  "cat-a-lot-subcatcountpref": "最多显示的子分类数量",
+		  // Progress
+		  "cat-a-lot-loading": "正在加载……",
+		  "cat-a-lot-editing": "正在编辑页面",
+		  "cat-a-lot-of": "，共有",
+		  "cat-a-lot-skipped-already": "以下页面已跳过，因为页面已经在分类中：",
+		  "cat-a-lot-skipped-not-found": "以下页面已跳过，因为找不到现有分类：",
+		  "cat-a-lot-skipped-server": "以下页面无法编辑，因为连接服务器出错：",
+		  "cat-a-lot-all-done": "全部页面已处理。",
+		  "cat-a-lot-done": "已完成！",
+		  "cat-a-lot-added-cat": "已加入分类",
+		  "cat-a-lot-copied-cat": "已复制到分类",
+		  "cat-a-lot-moved-cat": "已移动到分类",
+		  "cat-a-lot-removed-cat": "已从分类移除",
+		  "cat-a-lot-return-to-page": "返回到页面",
+		  "cat-a-lot-cat-not-found": "找不到分类。",
+		  // Summaries
+		  "cat-a-lot-summary-add": "[[U:没有羽翼的格雷塔/Cat-a-lot|Cat-a-lot]]：加入分类[[Category:$1]]",
+		  "cat-a-lot-summary-copy": "[[U:没有羽翼的格雷塔/Cat-a-lot|Cat-a-lot]]：分类间复制：从[[Category:$1]]到[[Category:$2]]",
+		  "cat-a-lot-summary-move": "[[U:没有羽翼的格雷塔/Cat-a-lot|Cat-a-lot]]：分类间移动：从[[Category:$1]]到[[Category:$2]]",
+		  "cat-a-lot-summary-remove": "[[U:没有羽翼的格雷塔/Cat-a-lot|Cat-a-lot]]：从分类移除：[[Category:$1]]"
+		});
+	  }
+	};
+	//! src/Cat-a-lot/modules/core.tsx
+	var import_ext_gadget2 = require("ext.gadget.Util");
+	var import_ext_gadget3 = __toESM(require("ext.gadget.JSX"), 1);
+	//! src/Cat-a-lot/modules/api.ts
+	var import_ext_gadget = require("ext.gadget.Util");
+	var api = (0, import_ext_gadget.initMwApi)("Cat-a-lot/".concat(version));
+	//! src/Cat-a-lot/modules/core.tsx
+	var {
+	  wgCanonicalSpecialPageName,
+	  wgFormattedNamespaces,
+	  wgNamespaceIds,
+	  wgNamespaceNumber,
+	  wgTitle
+	} = mw.config.get();
+	var catALot = () => {
+	  /*! Cat-a-lot | CC-BY-SA-4.0 <https://qwbk.cc/H:CC-BY-SA-4.0> */
+	  class CAL {
+		static isSearchMode = false;
+		static MESSAGES = /* @__PURE__ */ (() => DEFAULT_MESSAGES)();
+		static DEFAULT_SETTING = /* @__PURE__ */ (() => DEFAULT_SETTING)();
+		static API_TAG = /* @__PURE__ */ (() => apiTag)();
+		static TARGET_NAMESPACE = /* @__PURE__ */ (() => targetNamespace)();
+		static CURRENT_CATEGROY = /* @__PURE__ */ (() => wgTitle)();
+		static wgFormattedNamespaces = /* @__PURE__ */ (() => wgFormattedNamespaces)();
+		static wgNamespaceIds = /* @__PURE__ */ (() => wgNamespaceIds)();
+		static isAutoCompleteInit = false;
+		static api = /* @__PURE__ */ (() => api)();
+		static alreadyThere = [];
+		static connectionError = [];
+		static notFound = [];
+		static counterCurrent = 0;
+		static counterNeeded = 0;
+		static counterCat = 0;
+		static currentCategory = "";
+		static dialogHeight = 450;
+		static editToken = "";
+		static localCatName = (() => wgFormattedNamespaces[CAL.TARGET_NAMESPACE])();
+		static parentCats = [];
+		static subCats = [];
+		static settings = {};
+		static variantCache = {};
+		static $counter = (() => $())();
+		static $progressDialog = (() => $())();
+		static $labels = (() => $())();
+		static $selectedLabels = (() => $())();
+		$body;
+		$container;
+		$dataContainer;
+		$markCounter;
+		$resultList;
+		$searchInput;
+		$head;
+		$link;
+		constructor($body) {
+		  var _mw$util$getParamValu;
+		  if (!mw.msg("cat-a-lot-loading")) {
+			mw.messages.set(CAL.MESSAGES);
+		  }
+		  this.$body = $body;
+		  CAL.initSettings();
+		  const container = /* @__PURE__ */ import_ext_gadget3.default.createElement("div", {
+			className: [CLASS_NAME, CLASS_NAME_CONTAINER, "noprint"]
+		  }, /* @__PURE__ */ import_ext_gadget3.default.createElement("div", {
+			className: CLASS_NAME_CONTAINER_DATA
+		  }, /* @__PURE__ */ import_ext_gadget3.default.createElement("div", {
+			className: CLASS_NAME_CONTAINER_DATA_MARK_COUNTER
+		  }), /* @__PURE__ */ import_ext_gadget3.default.createElement("div", {
+			className: CLASS_NAME_CONTAINER_DATA_CATEGORY_LIST
+		  }), /* @__PURE__ */ import_ext_gadget3.default.createElement("div", null, /* @__PURE__ */ import_ext_gadget3.default.createElement("input", {
+			className: CLASS_NAME_CONTAINER_DATA_SEARCH_INPUT_CONTAINER_INPUT,
+			placeholder: CAL.msg("enter-name"),
+			type: "text",
+			value: CAL.isSearchMode ? (_mw$util$getParamValu = mw.util.getParamValue("search")) !== null && _mw$util$getParamValu !== void 0 ? _mw$util$getParamValu : "" : "",
+			onKeyDown: (event) => {
+			  const $element = $(event.currentTarget);
+			  if (event.key === "Enter") {
+				var _$element$val$trim, _$element$val;
+				const cat = (_$element$val$trim = (_$element$val = $element.val()) === null || _$element$val === void 0 ? void 0 : _$element$val.trim()) !== null && _$element$val$trim !== void 0 ? _$element$val$trim : "";
+				if (cat) {
+				  this.updateCats(cat);
 				}
-			} )
-				.on( 'input keyup', function () {
-					var oldVal = this.value,
-						newVal = oldVal.replace( reCat, '' );
-					if ( newVal !== oldVal ) { this.value = newVal; }
-	
-					if ( !newVal ) { mw.cookie.set( 'catAlot', null ); }
-				} );
-	
-			function initAutocomplete() {
-				if ( CAL.autoCompleteIsEnabled ) { return; }
-	
-				CAL.autoCompleteIsEnabled = true;
-	
-				if ( !$searchInput.val() && mw.cookie && mw.cookie.get( 'catAlot' ) ) { $searchInput.val( mw.cookie.get( 'catAlot' ) ); }
-	
-				$searchInput.autocomplete( {
-					source: function ( request, response ) {
-						CAL.doAPICall( {
-							action: 'opensearch',
-							search: request.term,
-							redirects: 'resolve',
-							namespace: 14
-						}, function ( data ) {
-							if ( data[ 1 ] ) {
-								response( $( data[ 1 ] )
-									.map( function ( index, item ) {
-										return item.replace( reCat, '' );
-									} ) );
-							}
-	
-						} );
-					},
-					open: function () {
-						$( '.ui-autocomplete' )
-							.position( {
-								my: is_rtl ? 'left bottom' : 'right bottom',
-								at: is_rtl ? 'left top' : 'right top',
-								of: $searchInput
-							} );
-					},
-					appendTo: '#cat_a_lot'
-				} );
+			  }
 			}
-			$( '<a>' )
-			// .attr( 'id', 'cat_a_lot_select_all' )
-				.text( msg( 'all' ) )
-				.on( 'click', function () {
-					CAL.toggleAll( true );
-				} )
-				.appendTo( $selections.append( ' ' ) );
-			if ( this.settings.editpages ) {
-				$selectFiles = $( '<a>' )
-					.on( 'click', function () {
-						CAL.toggleAll( 'files' );
-					} );
-				$selectPages = $( '<a>' )
-					.on( 'click', function () {
-						CAL.toggleAll( 'pages' );
-					} );
-				$selections.append( $( '<span>' ).hide().append( [ ' / ', $selectFiles, ' / ', $selectPages ] ) );
+		  })), /* @__PURE__ */ import_ext_gadget3.default.createElement("div", {
+			className: CLASS_NAME_CONTAINER_DATA_SELECTIONS
+		  }, [CAL.msg("select"), " "], /* @__PURE__ */ import_ext_gadget3.default.createElement("a", {
+			className: CLASS_NAME_CONTAINER_DATA_SELECTIONS_ALL,
+			onClick: () => {
+			  this.toggleAll(true);
 			}
-			$selectNone = $( '<a>' )
-			// .attr( 'id', 'cat_a_lot_select_none' )
-				.text( msg( 'none' ) )
-				.on( 'click', function () {
-					CAL.toggleAll( false );
-				} );
-			$selectInvert = $( '<a>' )
-				.on( 'click', function () {
-					CAL.toggleAll( null );
-				} );
-			$selections.append( [ ' • ', $selectNone, ' • ', $selectInvert,
-				$( '<div>' ).append( [
-					$( '<input>' )
-						.attr( {
-							id: 'cat_a_lot_comment',
-							type: 'text',
-							placeholder: msg( 'comment-label' )
-						} )
-				] )
-			] );
-	
-			$link
-				.on( 'click', function () {
-					$( this ).toggleClass( 'cat_a_lot_enabled' );
-					// Load autocomplete on demand
-					mw.loader.using( 'jquery.ui', initAutocomplete );
-	
-					if ( !CAL.executed ) {
-						$.when( mw.loader.using( [
-							'jquery.ui',
-							'jquery.ui',
-							'jquery.ui',
-							'mediawiki.api',
-							'mediawiki.jqueryMsg'
-						] ), $.ready )
-							.then( function () {
-								return new mw.Api().loadMessagesIfMissing( [
-									'Cancel',
-									'Categorytree-not-found',
-									// 'Checkuser-all',
-									// 'Code-field-select',
-									// 'Export-addcat',
-									'Filerevert-submit',
-									'Returnto',
-									'Ooui-selectfile-placeholder',
-									// 'Visualeditor-clipboard-copy',
-									'Prefs-files',
-									'Categories',
-									'Checkbox-invert',
-									'Centralnotice-remove', // 'Ooui-item-remove'
-									'Apifeatureusage-warnings'
-								] );
-							} ).then( function () {
-								CAL.run();
-							} );
-					} else { CAL.run(); }
-				} );
-			$settingsLink
-				.on( 'click', CAL.manageSettings );
-			this.localCatName = formattedNS[ 14 ] + ':';
-			mw.loader.using( 'mediawiki.cookie', function () { // Let catAlot stay open
-				var val = mw.cookie.get( 'catAlotO' );
-				if ( val && Number( val ) === ns ) { $link.click(); }
+		  }, CAL.msg("all")), " • ", /* @__PURE__ */ import_ext_gadget3.default.createElement("a", {
+			className: CLASS_NAME_CONTAINER_DATA_SELECTIONS_NONE,
+			onClick: () => {
+			  this.toggleAll(false);
 			}
-			);
-		},
-	
-		getOverCat: function ( e ) {
-			var files = [];
-			r = 0; // result counter
-			if ( e ) {
-				e.preventDefault();
-				this.files = this.getMarkedLabels(); // .toArray() not working
-				for ( var f = 0; f < this.files.length; f++ ) { files.push( this.files[ f ] ); }
-	
+		  }, CAL.msg("none")))), /* @__PURE__ */ import_ext_gadget3.default.createElement("div", {
+			className: CLASS_NAME_CONTAINER_HEAD
+		  }, /* @__PURE__ */ import_ext_gadget3.default.createElement("a", {
+			className: CLASS_NAME_CONTAINER_HEAD_LINK
+		  }, "Cat-a-lot")));
+		  this.$container = $(container);
+		  this.$container.appendTo(this.$body);
+		  this.$dataContainer = this.$container.find(".".concat(CLASS_NAME_CONTAINER_DATA));
+		  this.$markCounter = this.$dataContainer.find(".".concat(CLASS_NAME_CONTAINER_DATA_MARK_COUNTER));
+		  this.$resultList = this.$dataContainer.find(".".concat(CLASS_NAME_CONTAINER_DATA_CATEGORY_LIST));
+		  this.$searchInput = this.$dataContainer.find(".".concat(CLASS_NAME_CONTAINER_DATA_SEARCH_INPUT_CONTAINER_INPUT));
+		  this.$head = this.$container.find(".".concat(CLASS_NAME_CONTAINER_HEAD));
+		  this.$link = this.$head.find(".".concat(CLASS_NAME_CONTAINER_HEAD_LINK));
+		}
+		buildElements() {
+		  const regexCat = new RegExp("^\\s*".concat(CAL.localizedRegex(CAL.TARGET_NAMESPACE, "Category"), ":"), "");
+		  let isCompositionStart;
+		  this.$searchInput.on("compositionstart", () => {
+			isCompositionStart = true;
+		  });
+		  this.$searchInput.on("compositionend", () => {
+			isCompositionStart = false;
+		  });
+		  this.$searchInput.on("input keyup", (event) => {
+			if (isCompositionStart) {
+			  return;
 			}
-			if ( !files.length || !( files instanceof Array ) ) { return alert( mw.msg( 'Ooui-selectfile-placeholder' ) ); }
-			this.files = files;
-			mw.loader.using( [ 'jquery.spinner' ], function () {
-				$markCounter.injectSpinner( 'overcat' );
-				CAL.getFileCats();
-			} );
-		},
-	
-		getFileCats: function () {
-			var aLen = this.files.length;
-			var bLen = this.selectedLabels.length;
-			var file = this.files[ aLen - 1 ][ 0 ];
-			$overcat.text( '…' + aLen + '\/' + bLen );
-			if ( file ) {
-				this.doAPICall( {
-					prop: 'categories',
-					titles: file
-				}, this.checkFileCats
-				);
+			const {
+			  currentTarget
+			} = event;
+			const {
+			  value: oldVal
+			} = currentTarget;
+			const newVal = oldVal.replace(regexCat, "");
+			if (newVal !== oldVal) {
+			  currentTarget.value = newVal;
 			}
-	
-		},
-	
-		checkFileCats: function ( data ) {
-			var cc = 0; // current cat counter;
-			var file = CAL.files.pop();
-			if ( data.query && data.query.pages ) {
-				$.each( data.query.pages, function ( id, page ) {
-					if ( page.categories ) {
-						var target = file[ 1 ].removeClass( 'cat_a_lot_selected' );
-						$.each( page.categories, function ( c, cat ) {
-							var title = cat.title.replace( reCat, '' ),
-								color = 'orange',
-								mark = function ( kind ) { // kind of category
-								// TODO: store data to use this for special remove function
-									if ( kind === 'sub' ) { color = 'green'; }
-									var border = '3px dotted ';
-									if ( $.inArray( title, CAL[ kind + 'Cats' ] ) !== -1 ) {
-										cc++;
-										target = target.parents( '.gallerybox' );
-										target = target[ 0 ] ? target : file[ 1 ];
-										target.css( {
-											border: border + color
-										} ).prop( 'title', msg( kind + '-cat' ) + title );
-										color = 'red';
-										return false;
-									}
-								};
-							mark( 'sub' );
-							return mark( 'parent' );
-						} );
-						if ( cc ) { r++; }
-					}
-				} );
-			} else { mw.log( 'Api-fail', file, data ); }
-			if ( CAL.files[ 0 ] ) { return setTimeout( function () { CAL.getFileCats(); }, 100 ); } // Api has bad performance here, so we can get only each file separately
-			$overcat.text( msg( 'pe_file', r, CAL.selectedLabels.length ) );
-			$.removeSpinner( 'overcat' );
-		},
-	
-		findAllLabels: function ( searchmode ) {
-		// It's possible to allow any kind of pages as well but what happens if you click on "select all" and don't expect it
-			switch ( searchmode ) {
-				case 'search':
-					if ( this.settings.editpages ) { this.labels = this.labels.add( $( 'li.mw-search-result' ) ); }
-					else { this.labels = this.labels.add( $( '.searchResultImage .searchResultImage-text' ) ); }
-					break;
-				case 'mediasearch':
-					// Note: mediasearch only shows files in the results.
-					this.labels = this.labels.add($('section.cdx-tab:visible .sdms-image-result, section.cdx-tab:visible .sdms-audio-result, section.cdx-tab:visible .sdms-video-result, section.cdx-tab:visible .sdms-other-result, section.cdx-tab:visible .sdms-page-result'));
-					break;				
-				case 'category':
-					this.findAllLabels( 'gallery' );
-					this.labels = this.labels.add( $( '#mw-category-media' ).find( 'li[class!="gallerybox"]' ) );
-					if ( this.settings.editpages ) {
-						this.pageLabels = $( '#mw-pages, #mw-subcategories' ).find( 'li' );
-						// this.files = this.labels;
-						this.labels = this.labels.add( this.pageLabels );
-					}
-					break;
-				case 'contribs':
-					this.labels = this.labels.add( $( 'ul.mw-contributions-list li' ) );
-					// FIXME: Filter if !this.settings.editpages
-					break;
-				case 'prefix':
-					this.labels = this.labels.add( $( 'ul.mw-prefixindex-list li' ) );
-					break;
-				case 'listfiles':
-				// this.labels = this.labels.add( $( 'table.listfiles>tbody>tr' ).find( 'td:eq(1)' ) );
-					this.labels = this.labels.add( $( '.TablePager_col_img_name' ) );
-					break;
-				case 'gallery':
-				// this.labels = this.labels.add( '.gallerybox' ); // TODO incombatible with GalleryDetails
-					this.labels = this.labels.add( '.gallerytext' );
-					break;
+		  });
+		  const initAutocomplete = () => {
+			if (CAL.isAutoCompleteInit) {
+			  return;
 			}
-		},
-	
-		getTitleFromLink: function ( $a ) {
-			try {
-				return decodeURIComponent( $a.attr( 'href' ) )
-					.match( /wiki\/(.+?)(?:#.+)?$/ )[ 1 ].replace( /_/g, ' ' );
-			} catch ( ex ) {
-				return '';
-			}
-		},
-	
-		/**
-		 *  @brief Get title from selected pages
-		 *  @return [array] touple of page title and $object
-		 */
-		// this function is used in [[MediaWiki:Gadget-ACDC.js]], please avoid making incompatible changes ☺
-		getMarkedLabels: function () {
-			this.selectedLabels = this.labels.filter( '.cat_a_lot_selected:visible' );
-			return this.selectedLabels.map( function () {
-				var label = $( this ), file = label.find( 'a:not([role])[title][class$="title"]' );
-				file = file.length ? file : label.find( 'a:not([role])[title]' );
-				// Special:MediaSearch adds .cat_a_lot_selected css class directly to the label 
-				if (!file.length && label.is('[title]')) {
-					file = label;
-				}
-				var title = file.attr( 'title' ) ||
-					CAL.getTitleFromLink( file ) ||
-					CAL.getTitleFromLink( label.find( 'a:not([role])' ) ) ||
-					CAL.getTitleFromLink( label.parent().find( 'a:not([role])' ) ); // TODO needs optimization
-				if ( title.indexOf( formattedNS[ 2 ] + ':' ) ) { return [ [ title, label ] ]; }
-			} );
-		},
-	
-		updateSelectionCounter: function () {
-			this.selectedLabels = this.labels.filter( '.cat_a_lot_selected:visible' );
-			var first = $markCounter.is( ':hidden' );
-			$markCounter
-				.html( msg( 'files-selected', this.selectedLabels.length ) )
-				.show();
-			if ( first && !$dataContainer.is( ':hidden' ) ) { // Workaround to fix position glitch
-				first = $markCounter.innerHeight();
-				$container
-					.offset( { top: $container.offset().top - first } )
-					.height( $container.height() + first );
-				$( window ).on( 'beforeunload', function () {
-					if ( CAL.labels.filter( '.cat_a_lot_selected:visible' )[ 0 ] ) { return 'You have pages selected!'; } // There is a default message in the browser
-				} );
-			}
-		},
-		
-		observeTabChange: function() {
-			var container = document.querySelector( ".cdx-tabs__content");
-			if ( this.tabsObserver ) {
-				this.tabsObserver.disconnect();
-			}
-			this.tabsObserver = new MutationObserver( function( mutationsList ) {
-				CAL.makeClickable();
-			} );
-			
-			// Start observing the container for attribute changes in its children
-			if ( container ) {
-				var tabContents = container.children;
-				for ( var i = 0; i < tabContents.length; i++ ) {
-					this.tabsObserver.observe( tabContents[i], { attributes: true, attributeFilter: ['style'] } );
-				}
-			}
-		},
-	
-		observeNewMediaSearchResults: function () {
-			var CAL = this; // Reference to Cat-a-lot object
-		
-			// Select the container where new results are added
-			var container = $('section.cdx-tab:visible .sdms-search-results__list' ).get(0);
-		
-			// If observer already exists, disconnect it first
-			if ( this.resultsObserver ) {
-				this.resultsObserver.disconnect();
-			}
-		
-			// Create a new MutationObserver
-			this.resultsObserver = new MutationObserver( function( mutationsList ) {
-				for ( var mutation of mutationsList ) {
-					if ( mutation.type === 'childList' && mutation.addedNodes.length > 0 ) {
-						// Call makeClickable() to re-initialize labels
-						CAL.makeClickable();
-						break; // No need to process further mutations
-					}
-				}
-			} );
-		
-			// Start observing the container for child additions
-			if ( container ) {
-				this.resultsObserver.observe(container, { childList: true, subtree: false });
-			}
-		},
-		
-		initMediaSearchEventHandlers : function() {
-			this.interceptedElements = $(); // Initialize an array to keep track
-			this.labels.each( function () {
-				var $this = $( this );
-				var element = $this.get( 0 );
-				var handler = function ( event ) {
-					event.stopPropagation();
-					// Proceed with Cat-a-lot selection logic
-					$this.trigger( 'click.catALot', event );
-				};
-				// Store the handler so we can remove it later
-				$this.data( 'cal_click_handler', handler );
-				element.addEventListener( 'click', handler, true ); // Capture phase
-				// Keep track of elements we modified
-				CAL.interceptedElements = CAL.interceptedElements.add( $this );
-			});
-			
-			// Call the function to set up the observer
-			// Delay is to be sure that Vue.js update is ready before observing
-			setTimeout( function() {
-				CAL.observeNewMediaSearchResults();
-			}, 300 );
-			this.updateSelectionCounter();
-		},
-		
-		clearMediaSearchEventHandlers: function() {
-			if ( this.interceptedElements ) {
-				this.interceptedElements.each( function() {
-					var $this = $( this );
-					var element = $this.get( 0 );
-					var handler = $this.data( 'cal_click_handler' );
-					if (handler) {
-						element.removeEventListener( 'click', handler, true );
-						$this.removeData( 'cal_click_handler' );
-					}
+			CAL.isAutoCompleteInit = true;
+			this.$searchInput.autocomplete({
+			  source: (request, response) => {
+				this.doAPICall({
+				  action: "opensearch",
+				  namespace: CAL.TARGET_NAMESPACE,
+				  redirects: "resolve",
+				  search: request.term
+				}, (result) => {
+				  if (result[1]) {
+					response($(result[1]).map((_index, item) => item.replace(regexCat, "")));
+				  }
 				});
-				this.interceptedElements = null;
-			}
-		},
-	
-		makeClickable: function () {
-			
-			// Unbind old event handlers
-			if (this.labels) {
-				this.labels.off('click.catALot');
-			}
-	
-			// Remove old intercepted event handlers
-			if ( this.searchmode === 'mediasearch' ) {
-				this.clearMediaSearchEventHandlers();
-			}
-			
-			// Clear old labels
-			$( '.cat_a_lot_label' ).removeClass( 'cat_a_lot_label' );
-			
-			this.labels = $();
-			this.pageLabels = $(); // only for distinct all selections
-			this.findAllLabels( this.searchmode );
-			CAL.updateOldSelections(); // Move old selections to new labels
-			
-			// Apply event handlers to labels
-			this.labels.catALotShiftClick( function () {
-				CAL.updateSelectionCounter();
-			} )
-			.addClass( 'cat_a_lot_label' );
-	
-			// For MediaSearch, intercept Vue.js event handlers
-			if ( this.searchmode === 'mediasearch' ) {
-				this.initMediaSearchEventHandlers();
-			}
-			
-			// Show selection counter if least one is selected
-			if ( $( '.cat_a_lot_selected' ).length ) {
-				this.updateSelectionCounter();
-			}			
-		},
-	
-		// Move old selections to new labels. This is needed in Special:Search
-		updateOldSelections : function () {
-			this.labels.each( function() {
-				var current = $( this );
-				
-				// Move child element selections to current
-				var selected_childs = current.find( '.cat_a_lot_selected, #cat_a_lot_last_selected' );
-				if ( selected_childs.length > 0 ) {
-					selected_childs.removeClass( 'cat_a_lot_selected' );
-					selected_childs.removeAttr( 'id' );
-					current.addClass( 'cat_a_lot_selected' );
-				}
-				
-				// Move parent element selections to current
-				var parents = current.parents( '.cat_a_lot_selected' );
-				if ( parents.length ) {
-					parents.removeClass( 'cat_a_lot_selected' );
-					current.addClass( 'cat_a_lot_selected' );
-				}
-				var selected_parents = current.parents( '#cat_a_lot_last_selected' );
-				if ( selected_parents.length ) {
-					selected_parents.removeAttr( 'id' );
-					current.attr( 'id', 'cat_a_lot_last_selected' );
-				}
+			  },
+			  position: {
+				my: "right bottom",
+				at: "right top",
+				of: this.$searchInput
+			  },
+			  appendTo: ".".concat(CLASS_NAME_CONTAINER)
 			});
-			
-			// Remove selected which cannot be selected in current settings
-			$( ".cat_a_lot_selected" ).not( this.labels )
-				.removeClass( 'cat_a_lot_selected' )
-				.removeClass( 'cat_a_lot_last_selected' );
-		},
-	
-		// promises are used to confirm that updateSelectionCounter is 
-		// called after toggleClass is ready
-		toggleAll: function ( select ) {
-			let togglePromises = [];
-		
-			if ( typeof select === 'string' && this.pageLabels[0] ) {
-				togglePromises.push( this.pageLabels.toggleClass( 'cat_a_lot_selected', true ) );
-				if ( select === 'files' ) {
-					togglePromises.push( this.labels.toggleClass( 'cat_a_lot_selected' ) );
+		  };
+		  this.$link.on("click", (event) => {
+			$(event.currentTarget).toggleClass(CLASS_NAME_CONTAINER_HEAD_LINK_ENABLED);
+			initAutocomplete();
+			this.run();
+		  });
+		}
+		static initSettings() {
+		  var _window$CatALotPrefs;
+		  let catALotPrefs = (_window$CatALotPrefs = window.CatALotPrefs) !== null && _window$CatALotPrefs !== void 0 ? _window$CatALotPrefs : {};
+		  const typeOfCatALotPrefs = typeof catALotPrefs;
+		  if (typeOfCatALotPrefs === "object" && !Array.isArray(catALotPrefs) || typeOfCatALotPrefs !== "object") {
+			catALotPrefs = {};
+		  }
+		  for (var _i = 0, _Object$keys = Object.keys(CAL.DEFAULT_SETTING); _i < _Object$keys.length; _i++) {
+			var _catALotPrefs$setting;
+			const settingKey = _Object$keys[_i];
+			const setting = CAL.DEFAULT_SETTING[settingKey];
+			CAL.settings[settingKey] = (_catALotPrefs$setting = catALotPrefs[settingKey]) !== null && _catALotPrefs$setting !== void 0 ? _catALotPrefs$setting : setting.default;
+			if (!setting.select_i18n) {
+			  continue;
+			}
+			setting.select = {};
+			for (var _i2 = 0, _Object$keys2 = Object.keys(setting.select_i18n); _i2 < _Object$keys2.length; _i2++) {
+			  const messageKey = _Object$keys2[_i2];
+			  const message = setting.select_i18n[messageKey];
+			  setting.select[CAL.msg(messageKey)] = message;
+			}
+		  }
+		}
+		static msg(key, ...args) {
+		  const fullKey = "cat-a-lot-".concat(key);
+		  return args.length ? mw.message(fullKey, ...args).parse() : mw.message(fullKey).plain();
+		}
+		static localizedRegex(namespaceNumber, fallback) {
+		  var _CAL$wgFormattedNames;
+		  const wikiTextBlank = String.raw(_templateObject || (_templateObject = _taggedTemplateLiteral(["[	 _  ᠎ - \u2028\u2029  　]+"], ["[\\t _\\xA0\\u1680\\u180E\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000]+"])));
+		  const wikiTextBlankRE = new RegExp(wikiTextBlank, "g");
+		  const createRegexStr = (name) => {
+			if (!(name !== null && name !== void 0 && name.length)) {
+			  return "";
+			}
+			let regexName = "";
+			for (let i = 0; i < name.length; i++) {
+			  const initial = name.slice(i, i + 1);
+			  const ll = initial.toLowerCase();
+			  const ul = initial.toUpperCase();
+			  regexName += ll === ul ? initial : "[".concat(ll).concat(ul, "]");
+			}
+			return regexName.replace(/([$()*+.?\\^])/g, String.raw(_templateObject2 || (_templateObject2 = _taggedTemplateLiteral(["$1"], ["\\$1"])))).replace(wikiTextBlankRE, wikiTextBlank);
+		  };
+		  fallback = fallback.toLowerCase();
+		  const canonical = (_CAL$wgFormattedNames = CAL.wgFormattedNamespaces[namespaceNumber]) === null || _CAL$wgFormattedNames === void 0 ? void 0 : _CAL$wgFormattedNames.toLowerCase();
+		  let regexString = createRegexStr(canonical);
+		  if (fallback && canonical !== fallback) {
+			regexString += "|".concat(createRegexStr(fallback));
+		  }
+		  for (var _i3 = 0, _Object$keys3 = Object.keys(CAL.wgNamespaceIds); _i3 < _Object$keys3.length; _i3++) {
+			const catName = _Object$keys3[_i3];
+			if (catName.toLowerCase() !== canonical && catName.toLowerCase() !== fallback && CAL.wgNamespaceIds[catName] === namespaceNumber) {
+			  regexString += "|".concat(createRegexStr(catName));
+			}
+		  }
+		  return "(?:".concat(regexString, ")");
+		}
+		updateSelectionCounter() {
+		  CAL.$selectedLabels = CAL.$labels.filter(".".concat(CLASS_NAME_LABEL_SELECTED));
+		  this.$markCounter.show().html(CAL.msg("files-selected", CAL.$selectedLabels.length.toString()));
+		}
+		toggleAll(select) {
+		  CAL.$labels.toggleClass(CLASS_NAME_LABEL_SELECTED, select);
+		  this.updateSelectionCounter();
+		}
+		static findAllVariants(category) {
+		  return _asyncToGenerator(function* () {
+			if (CAL.variantCache[category] !== void 0) {
+			  return CAL.variantCache[category];
+			}
+			if (mw.storage.getObject(storageKey + category)) {
+			  CAL.variantCache[category] = mw.storage.getObject(storageKey + category);
+			  return CAL.variantCache[category];
+			}
+			let results = [];
+			const params = {
+			  action: "parse",
+			  format: "json",
+			  formatversion: "2",
+			  text: category,
+			  title: "temp"
+			};
+			for (var _i4 = 0, _VARIANTS = VARIANTS; _i4 < _VARIANTS.length; _i4++) {
+			  const variant = _VARIANTS[_i4];
+			  try {
+				const {
+				  parse
+				} = yield CAL.api.get({
+				  ...params,
+				  variant
+				});
+				const {
+				  text
+				} = parse;
+				const result = $(text).eq(0).text().trim();
+				results[results.length] = result;
+			  } catch {
+			  }
+			}
+			results = (0, import_ext_gadget2.uniqueArray)(results);
+			CAL.variantCache[category] = results;
+			mw.storage.setObject(storageKey + category, results, 60 * 60 * 24);
+			return results;
+		  })();
+		}
+		static regexBuilder(category) {
+		  return _asyncToGenerator(function* () {
+			const catName = CAL.localizedRegex(CAL.TARGET_NAMESPACE, "Category");
+			category = category.replace(/^[\s_]+/, "").replace(/[\s_]+$/, "");
+			const variants = yield CAL.findAllVariants(category);
+			const variantRegExps = [];
+			var _iterator2 = _createForOfIteratorHelper(variants), _step2;
+			try {
+			  for (_iterator2.s(); !(_step2 = _iterator2.n()).done; ) {
+				let variant = _step2.value;
+				variant = mw.util.escapeRegExp(variant);
+				variant = variant.replace(/[\s_]+/g, String.raw(_templateObject3 || (_templateObject3 = _taggedTemplateLiteral(["[s_]+"], ["[\\s_]+"]))));
+				const first = variant.slice(0, 1);
+				if (first.toUpperCase() !== first.toLowerCase()) {
+				  variant = "[".concat(first.toUpperCase()).concat(first.toLowerCase(), "]").concat(variant.slice(1));
 				}
+				variantRegExps[variantRegExps.length] = variant;
+			  }
+			} catch (err) {
+			  _iterator2.e(err);
+			} finally {
+			  _iterator2.f();
+			}
+			return new RegExp("\\[\\[[\\s_]*".concat(catName, "[\\s_]*:[\\s_]*(?:").concat(variantRegExps.join("|"), ")[\\s_]*(\\|[^\\]]*(?:\\][^\\]]+)*)?\\]\\]"), "g");
+		  })();
+		}
+		doAPICall(_params, callback) {
+		  const params = _params;
+		  params["format"] = "json";
+		  params["formatversion"] = "2";
+		  let i = 0;
+		  const doCall = () => {
+			const handleError = (error) => {
+			  mw.log.error("[Cat-a-lot] Ajax error:", error);
+			  if (i < 4) {
+				setTimeout(doCall, 300);
+				i++;
+			  } else if (params["title"]) {
+				CAL.connectionError[CAL.connectionError.length] = params["title"];
+				this.updateCounter();
+			  }
+			};
+			if (params["action"] === "query") {
+			  CAL.api.get(params).then(callback).catch(handleError);
 			} else {
-				// invert / none / all
-				togglePromises.push( this.labels.toggleClass( 'cat_a_lot_selected', select ) );
+			  CAL.api.post(params).then(callback).catch(handleError);
 			}
-		
-			$.when( ...togglePromises ).done( () => {
-				this.updateSelectionCounter();
-			} );
-		},
-	
-		getSubCats: function () {
-			var data = {
-				list: 'categorymembers',
-				cmtype: 'subcat',
-				cmlimit: this.settings.subcatcount,
-				cmtitle: 'Category:' + this.currentCategory
-			};
-	
-			this.doAPICall( data, function ( result ) {
-				var cats = ( result && result.query && result.query.categorymembers ) || [];
-				CAL.subCats = [];
-				for ( var i = 0; i < cats.length; i++ ) { CAL.subCats.push( cats[ i ].title.replace( /^[^:]+:/, '' ) ); }
-	
-				CAL.catCounter++;
-				if ( CAL.catCounter === 2 ) { CAL.showCategoryList(); }
-	
-			} );
-		},
-	
-		getParentCats: function () {
-			var data = {
-				prop: 'categories',
-				titles: 'Category:' + this.currentCategory
-			};
-			this.doAPICall( data, function ( result ) {
-				if(!result) return;
-				CAL.parentCats = [];
-				var cats,
-					pages = result.query.pages,
-					table = $( '<table>' );
-	
-				if ( pages[ -1 ] && pages[ -1 ].missing === '' ) {
-					$resultList.html( '<span id="cat_a_lot_no_found">' + mw.msg( 'Categorytree-not-found', this.currentCategory ) + '</span>' );
-					document.body.style.cursor = 'auto';
-					CAL.createCatLinks( '→', [ CAL.currentCategory ], table );
-					$resultList.append( table );
-					return;
+		  };
+		  doCall();
+		}
+		static markAsDone($markedLabel, targetCategory, mode) {
+		  $markedLabel.addClass(CLASS_NAME_LABEL_DONE);
+		  switch (mode) {
+			case "add":
+			  $markedLabel.append(/* @__PURE__ */ import_ext_gadget3.default.createElement(import_ext_gadget3.default.Fragment, null, /* @__PURE__ */ import_ext_gadget3.default.createElement("br", null), CAL.msg("added-cat", targetCategory)));
+			  break;
+			case "copy":
+			  $markedLabel.append(/* @__PURE__ */ import_ext_gadget3.default.createElement(import_ext_gadget3.default.Fragment, null, /* @__PURE__ */ import_ext_gadget3.default.createElement("br", null), CAL.msg("copied-cat", targetCategory)));
+			  break;
+			case "move":
+			  $markedLabel.append(/* @__PURE__ */ import_ext_gadget3.default.createElement(import_ext_gadget3.default.Fragment, null, /* @__PURE__ */ import_ext_gadget3.default.createElement("br", null), CAL.msg("moved-cat", targetCategory)));
+			  break;
+			case "remove":
+			  $markedLabel.append(/* @__PURE__ */ import_ext_gadget3.default.createElement(import_ext_gadget3.default.Fragment, null, /* @__PURE__ */ import_ext_gadget3.default.createElement("br", null), CAL.msg("removed-cat", targetCategory)));
+			  break;
+		  }
+		}
+		static doCleanup(text) {
+		  return CAL.settings.docleanup ? text.replace(/{{\s*[Cc]heck categories\s*(\|?.*?)}}/, "") : text;
+		}
+		// Remove {{Uncategorized}} (also with comment). No need to replace it with anything
+		static removeUncat(text) {
+		  return text.replace(/\{\{\s*[Uu]ncategorized\s*(\|?.*?)\}\}/, "");
+		}
+		displayResult() {
+		  this.$body.css({
+			cursor: "",
+			overflow: ""
+		  });
+		  this.$body.find(".".concat(CLASS_NAME_FEEDBACK)).addClass(CLASS_NAME_FEEDBACK_DONE);
+		  const $parent = CAL.$counter.parent();
+		  $parent.html(/* @__PURE__ */ import_ext_gadget3.default.createElement("h3", null, CAL.msg("done")));
+		  $parent.append(/* @__PURE__ */ import_ext_gadget3.default.createElement(import_ext_gadget3.default.Fragment, null, CAL.msg("all-done"), /* @__PURE__ */ import_ext_gadget3.default.createElement("br", null)));
+		  $parent.append(/* @__PURE__ */ import_ext_gadget3.default.createElement("a", {
+			onClick: () => {
+			  CAL.$progressDialog.remove();
+			  this.toggleAll(false);
+			}
+		  }, CAL.msg("return-to-page")));
+		  if (CAL.alreadyThere.length) {
+			$parent.append(/* @__PURE__ */ import_ext_gadget3.default.createElement(import_ext_gadget3.default.Fragment, null, /* @__PURE__ */ import_ext_gadget3.default.createElement("h5", null, CAL.msg("skipped-already", CAL.alreadyThere.length.toString())), CAL.alreadyThere.reduce((pre, cur, index) => index < CAL.alreadyThere.length - 1 ? [...pre, cur, /* @__PURE__ */ import_ext_gadget3.default.createElement("br", {
+			  key: index
+			})] : [...pre, cur], [])));
+		  }
+		  if (CAL.notFound.length) {
+			$parent.append(/* @__PURE__ */ import_ext_gadget3.default.createElement(import_ext_gadget3.default.Fragment, null, /* @__PURE__ */ import_ext_gadget3.default.createElement("h5", null, CAL.msg("skipped-not-found", CAL.notFound.length.toString())), CAL.notFound.reduce((pre, cur, index) => index < CAL.notFound.length - 1 ? [...pre, cur, /* @__PURE__ */ import_ext_gadget3.default.createElement("br", {
+			  key: index
+			})] : [...pre, cur], [])));
+		  }
+		  if (CAL.connectionError.length) {
+			$parent.append(/* @__PURE__ */ import_ext_gadget3.default.createElement(import_ext_gadget3.default.Fragment, null, /* @__PURE__ */ import_ext_gadget3.default.createElement("h5", null, CAL.msg("skipped-server", CAL.connectionError.length.toString())), CAL.connectionError.reduce((pre, cur, index) => index < CAL.connectionError.length - 1 ? [...pre, cur, /* @__PURE__ */ import_ext_gadget3.default.createElement("br", {
+			  key: index
+			})] : [...pre, cur], [])));
+		  }
+		}
+		updateCounter() {
+		  CAL.counterCurrent++;
+		  if (CAL.counterCurrent > CAL.counterNeeded) {
+			this.displayResult();
+		  } else {
+			CAL.$counter.text(CAL.counterCurrent);
+		  }
+		}
+		editCategories(result, markedLabel, targetCategory, mode) {
+		  var _this = this;
+		  return _asyncToGenerator(function* () {
+			var _page$revisions;
+			const [markedLabelTitle, $markedLabel] = markedLabel;
+			if (!(result !== null && result !== void 0 && result["query"])) {
+			  CAL.connectionError[CAL.connectionError.length] = markedLabelTitle;
+			  _this.updateCounter();
+			  return;
+			}
+			let originText = "";
+			let starttimestamp = 0;
+			let timestamp = 0;
+			CAL.editToken = result["query"].tokens.csrftoken;
+			const {
+			  pages
+			} = result["query"];
+			const [page] = pages;
+			originText = page === null || page === void 0 || (_page$revisions = page.revisions) === null || _page$revisions === void 0 ? void 0 : _page$revisions[0].slots.main.content;
+			({
+			  starttimestamp
+			} = page);
+			[{
+			  timestamp
+			}] = page.revisions;
+			const sourcecat = CAL.CURRENT_CATEGROY;
+			const targeRegExp = yield CAL.regexBuilder(targetCategory);
+			if (mode !== "remove" && targeRegExp.test(originText) && mode !== "move") {
+			  CAL.alreadyThere[CAL.alreadyThere.length] = markedLabelTitle;
+			  _this.updateCounter();
+			  return;
+			}
+			let text = originText;
+			let summary;
+			const sourceCatRegExp = yield CAL.regexBuilder(sourcecat);
+			switch (mode) {
+			  case "add":
+				text += "\n[[".concat(CAL.localCatName, ":").concat(targetCategory, "]]\n");
+				summary = CAL.msg("summary-add").replace("$1", targetCategory);
+				break;
+			  case "copy":
+				text = text.replace(sourceCatRegExp, "[[".concat(CAL.localCatName, ":").concat(sourcecat, "$1]]\n[[").concat(CAL.localCatName, ":").concat(targetCategory, "$1]]"));
+				summary = CAL.msg("summary-copy").replace("$1", sourcecat).replace("$2", targetCategory);
+				if (originText === text) {
+				  text += "\n[[".concat(CAL.localCatName, ":").concat(targetCategory, "]]");
 				}
-				// there should be only one, but we don't know its ID
-				for ( var id in pages ) { cats = pages[ id ].categories || []; }
-	
-				for ( var i = 0; i < cats.length; i++ ) { CAL.parentCats.push( cats[ i ].title.replace( /^[^:]+:/, '' ) ); }
-	
-				CAL.catCounter++;
-				if ( CAL.catCounter === 2 ) { CAL.showCategoryList(); }
-	
-			} );
-		},
-	
-		localizedRegex: function ( namespaceNumber, fallback ) {
-		// Copied from HotCat, thanks Lupo.
-			var wikiTextBlank = '[\\t _\\xA0\\u1680\\u180E\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000]+';
-			var wikiTextBlankRE = new RegExp( wikiTextBlank, 'g' );
-			var createRegexStr = function ( name ) {
-				if ( !name || !name.length ) { return ''; }
-	
-				var regexName = '';
-				for ( var i = 0; i < name.length; i++ ) {
-					var ii = name[ i ];
-					var ll = ii.toLowerCase();
-					var ul = ii.toUpperCase();
-					regexName += ( ll === ul ) ? ii : '[' + ll + ul + ']';
+				break;
+			  case "move":
+				text = text.replace(sourceCatRegExp, "[[".concat(CAL.localCatName, ":").concat(targetCategory, "$1]]"));
+				summary = CAL.msg("summary-move").replace("$1", sourcecat).replace("$2", targetCategory);
+				break;
+			  case "remove":
+				text = text.replace(sourceCatRegExp, "");
+				summary = CAL.msg("summary-remove").replace("$1", sourcecat);
+				break;
+			}
+			if (text === originText) {
+			  CAL.notFound[CAL.notFound.length] = markedLabelTitle;
+			  _this.updateCounter();
+			  return;
+			}
+			if (mode !== "remove") {
+			  text = CAL.doCleanup(CAL.removeUncat(text));
+			}
+			_this.doAPICall({
+			  action: "edit",
+			  token: CAL.editToken,
+			  tags: CAL.API_TAG,
+			  title: markedLabelTitle,
+			  assert: "user",
+			  bot: true,
+			  basetimestamp: timestamp,
+			  watchlist: CAL.settings.watchlist,
+			  text,
+			  summary,
+			  starttimestamp
+			}, () => {
+			  _this.updateCounter();
+			});
+			CAL.markAsDone($markedLabel, targetCategory, mode);
+		  })();
+		}
+		getContent(markedLabel, targetCategory, mode) {
+		  this.doAPICall({
+			action: "query",
+			formatversion: "2",
+			meta: "tokens",
+			titles: markedLabel[0],
+			prop: "revisions",
+			rvprop: ["content", "timestamp"],
+			rvslots: "main"
+		  }, (result) => {
+			void this.editCategories(result, markedLabel, targetCategory, mode);
+		  });
+		}
+		static getTitleFromLink(href) {
+		  try {
+			var _decodeURIComponent$m, _decodeURIComponent$m2;
+			return ((_decodeURIComponent$m = (_decodeURIComponent$m2 = decodeURIComponent(href !== null && href !== void 0 ? href : "").match(/wiki\/(.+?)(?:#.+)?$/)) === null || _decodeURIComponent$m2 === void 0 ? void 0 : _decodeURIComponent$m2[1]) !== null && _decodeURIComponent$m !== void 0 ? _decodeURIComponent$m : "").replace(/_/g, " ");
+		  } catch {
+			return "";
+		  }
+		}
+		getMarkedLabels() {
+		  const markedLabels = [];
+		  CAL.$selectedLabels = CAL.$labels.filter(".".concat(CLASS_NAME_LABEL_SELECTED));
+		  CAL.$selectedLabels.each((_index, label) => {
+			var _$labelLink$attr;
+			const $label = $(label);
+			const $labelLink = $label.find("a:not(.CategoryTreeToggle)[title]");
+			const title = ((_$labelLink$attr = $labelLink.attr("title")) === null || _$labelLink$attr === void 0 ? void 0 : _$labelLink$attr.trim()) || CAL.getTitleFromLink($labelLink.attr("href")) || CAL.getTitleFromLink($label.find("a:not(.CategoryTreeToggle)").attr("href"));
+			markedLabels[markedLabels.length] = [title, $label];
+		  });
+		  return markedLabels;
+		}
+		showProgress() {
+		  this.$body.css({
+			cursor: "wait",
+			overflow: "hidden"
+		  });
+		  CAL.$progressDialog = $(/* @__PURE__ */ import_ext_gadget3.default.createElement("div", null, CAL.msg("editing"), /* @__PURE__ */ import_ext_gadget3.default.createElement("span", {
+			className: CLASS_NAME_CURRENT_COUNTER
+		  }, CAL.counterCurrent), [CAL.msg("of"), CAL.counterNeeded])).dialog({
+			dialogClass: CLASS_NAME_FEEDBACK,
+			minHeight: 90,
+			height: 90,
+			width: 450,
+			modal: true,
+			closeOnEscape: false,
+			draggable: false,
+			resizable: false
+		  });
+		  this.$body.find(".".concat(CLASS_NAME_FEEDBACK, " .ui-dialog-titlebar")).hide();
+		  this.$body.find(".".concat(CLASS_NAME_FEEDBACK, " .ui-dialog-content")).height("auto");
+		  CAL.$counter = this.$body.find(".".concat(CLASS_NAME_CURRENT_COUNTER));
+		}
+		doSomething(targetCategory, mode) {
+		  const markedLabels = this.getMarkedLabels();
+		  if (!markedLabels.length) {
+			void mw.notify(CAL.msg("none-selected"), {
+			  tag: mw.config.get( 'wgUserGroups' ).includes('bot') ? 'Bot' : 'Automation tool',
+			});
+			return;
+		  }
+		  CAL.alreadyThere = [];
+		  CAL.connectionError = [];
+		  CAL.notFound = [];
+		  CAL.counterCurrent = 1;
+		  CAL.counterNeeded = markedLabels.length;
+		  this.showProgress();
+		  var _iterator3 = _createForOfIteratorHelper(markedLabels), _step3;
+		  try {
+			for (_iterator3.s(); !(_step3 = _iterator3.n()).done; ) {
+			  const markedLabel = _step3.value;
+			  this.getContent(markedLabel, targetCategory, mode);
+			}
+		  } catch (err) {
+			_iterator3.e(err);
+		  } finally {
+			_iterator3.f();
+		  }
+		}
+		addHere(targetCategory) {
+		  this.doSomething(targetCategory, "add");
+		}
+		copyHere(targetCategory) {
+		  this.doSomething(targetCategory, "copy");
+		}
+		moveHere(targetCategory) {
+		  this.doSomething(targetCategory, "move");
+		}
+		createCatLinks(symbol, categories) {
+		  categories.sort();
+		  var _iterator4 = _createForOfIteratorHelper(categories), _step4;
+		  try {
+			for (_iterator4.s(); !(_step4 = _iterator4.n()).done; ) {
+			  const category = _step4.value;
+			  const $tr = $(/* @__PURE__ */ import_ext_gadget3.default.createElement("tr", {
+				dataset: {
+				  category
 				}
-				return regexName.replace( /([\\\^\$\.\?\*\+\(\)])/g, '\\$1' )
-					.replace( wikiTextBlankRE, wikiTextBlank );
-			};
-	
-			fallback = fallback.toLowerCase();
-			var canonical = formattedNS[ namespaceNumber ].toLowerCase();
-			var RegexString = createRegexStr( canonical );
-			if ( fallback && canonical !== fallback ) { RegexString += '|' + createRegexStr( fallback ); }
-	
-			for ( var catName in nsIDs ) { if ( typeof catName === 'string' && catName.toLowerCase() !== canonical && catName.toLowerCase() !== fallback && nsIDs[ catName ] === namespaceNumber ) { RegexString += '|' + createRegexStr( catName ); } }
-	
-			return ( '(?:' + RegexString + ')' );
-		},
-	
-		regexCatBuilder: function ( category ) {
-			var catname = this.localizedRegex( 14, 'Category' );
-	
-			// Build a regexp string for matching the given category:
-			// trim leading/trailing whitespace and underscores
-			category = category.replace( /^[\s_]+|[\s_]+$/g, '' );
-	
-			// escape regexp metacharacters (= any ASCII punctuation except _)
-			category = mw.util.escapeRegExp( category );
-	
-			// any sequence of spaces and underscores should match any other
-			category = category.replace( /[\s_]+/g, '[\\s_]+' );
-	
-			// Make the first character case-insensitive:
-			var first = category.substr( 0, 1 );
-			if ( first.toUpperCase() !== first.toLowerCase() ) { category = '[' + first.toUpperCase() + first.toLowerCase() + ']' + category.substr( 1 ); }
-	
-			// Compile it into a RegExp that matches MediaWiki category syntax (yeah, it looks ugly):
-			// XXX: the first capturing parens are assumed to match the sortkey, if present, including the | but excluding the ]]
-			return new RegExp( '\\[\\[[\\s_]*' + catname + '[\\s_]*:[\\s_]*' + category + '[\\s_]*(\\|[^\\]]*(?:\\][^\\]]+)*)?\\]\\]\\s*', 'g' );
-		},
-	
-		getContent: function ( page, targetcat, mode ) {
-			if ( !this.cancelled ) {
-				this.doAPICall( {
-					curtimestamp: 1,
-					// meta: 'tokens',
-					prop: 'revisions',
-					rvprop: 'content|timestamp',
-					rvslots: 'main',
-					titles: page[ 0 ]
-				}, function ( result ) {
-					CAL.editCategories( result, page, targetcat, mode );
-				} );
-			}
-	
-		},
-	
-		getTargetCat: function ( pages, targetcat, mode ) {
-			if ( !this.cancelled ) {
-				const timer = ms => new Promise(res => setTimeout(res, ms));
-				this.doAPICall( {
-					meta: 'tokens',
-					prop: 'categories|categoryinfo',
-					titles: 'Category:' + targetcat
-				}, function ( result ) {
-					if ( !result || !result.query ) { return; }
-					CAL.edittoken = result.query.tokens.csrftoken;
-					result = CAL._getPageQuery( result );
-					CAL.checkTargetCat( result );
-					let promise = Promise.resolve();
-					for ( let i = 0; i < pages.length; i++ ) {
-						// NOTE: This timer is here to keep edits
-						// in same order than in screen.
-						promise = promise.then( () => timer( 40 ) ).then( () => {
-							CAL.getContent( pages[ i ], targetcat, mode );
-						} );
-					}
-				} );
-			}
-		},
-	
-		checkTargetCat: function ( page ) {
-			var is_dab = false; // disambiguation
-			var is_redir = typeof page.redirect === 'string'; // Hard redirect?
-			if ( typeof page.missing === 'string' ) { return alert( mw.msg( 'Apifeatureusage-warnings', mw.msg( 'Categorytree-not-found', page.title ) ) ); }
-			var cats = page.categories;
-			this.is_hidden = page.categoryinfo && typeof page.categoryinfo.hidden === 'string';
-	
-			if ( !is_redir && cats && ( CAL.disambig_category || CAL.redir_category ) ) {
-				for ( var c = 0; c < cats.length; c++ ) {
-					var cat = cats[ c ].title;
-					if ( cat ) { // Strip namespace prefix
-						cat = cat.substring( cat.indexOf( ':' ) + 1 ).replace( /_/g, ' ' );
-						if ( cat === CAL.disambig_category ) {
-							is_dab = true; break;
-						} else if ( cat === CAL.redir_category ) {
-							is_redir = true; break;
-						}
-					}
+			  }, /* @__PURE__ */ import_ext_gadget3.default.createElement("td", null, symbol), /* @__PURE__ */ import_ext_gadget3.default.createElement("td", null, /* @__PURE__ */ import_ext_gadget3.default.createElement("a", {
+				onClick: (event) => {
+				  const $element = $(event.currentTarget);
+				  this.updateCats($element.closest("tr").data("category"));
 				}
+			  }, category))));
+			  if (category !== CAL.CURRENT_CATEGROY && CAL.isSearchMode) {
+				$tr.append(/* @__PURE__ */ import_ext_gadget3.default.createElement("td", null, /* @__PURE__ */ import_ext_gadget3.default.createElement("a", {
+				  className: CLASS_NAME_CONTAINER_DATA_CATEGORY_LIST_ACTION,
+				  onClick: (event) => {
+					const $element = $(event.currentTarget);
+					this.addHere($element.closest("tr").data("category"));
+				  }
+				}, CAL.msg("add"))));
+			  } else if (category !== CAL.CURRENT_CATEGROY && !CAL.isSearchMode) {
+				$tr.append(/* @__PURE__ */ import_ext_gadget3.default.createElement(import_ext_gadget3.default.Fragment, null, /* @__PURE__ */ import_ext_gadget3.default.createElement("td", null, /* @__PURE__ */ import_ext_gadget3.default.createElement("a", {
+				  className: CLASS_NAME_CONTAINER_DATA_CATEGORY_LIST_ACTION,
+				  onClick: (event) => {
+					const $element = $(event.currentTarget);
+					this.copyHere($element.closest("tr").data("category"));
+				  }
+				}, CAL.msg("copy"))), /* @__PURE__ */ import_ext_gadget3.default.createElement("td", null, /* @__PURE__ */ import_ext_gadget3.default.createElement("a", {
+				  className: CLASS_NAME_CONTAINER_DATA_CATEGORY_LIST_ACTION,
+				  onClick: (event) => {
+					const $element = $(event.currentTarget);
+					this.moveHere($element.closest("tr").data("category"));
+				  }
+				}, CAL.msg("move")))));
+			  }
+			  this.$resultList.find("table").append($tr);
 			}
-	
-			if ( !is_redir && !is_dab ) { return; }
-			alert( mw.msg( 'Apifeatureusage-warnings', page.title + ' is a ' + CAL.disambig_category ) );
-		},
-	
-		// Remove {{Uncategorized}} (also with comment). No need to replace it with anything.
-		removeUncat: function ( text ) {
-			return ( this.settings.uncat ? text.replace( /\{\{\s*[Uu]ncategorized\s*[^}]*\}\}\s*(<!--.*?-->\s*)?/, '' ) : text );
-		},
-	
-		doCleanup: function ( text ) {
-			return ( this.settings.docleanup ? text.replace( /\{\{\s*[Cc]heck categories\s*(\|?.*?)\}\}/, '' ) : text );
-		},
-	
-		editCategories: function ( result, file, targetcat, mode ) {
-			if ( !result || !result.query ) {
-			// Happens on unstable wifi connections..
-				this.connectionError.push( file[ 0 ] );
-				this.updateCounter();
-				return;
+		  } catch (err) {
+			_iterator4.e(err);
+		  } finally {
+			_iterator4.f();
+		  }
+		}
+		showCategoryList() {
+		  var _this$$container$widt, _$$width;
+		  this.$body.css("cursor", "");
+		  const currentCategories = [CAL.currentCategory];
+		  this.$resultList.empty();
+		  this.$resultList.append(/* @__PURE__ */ import_ext_gadget3.default.createElement("table", null));
+		  this.createCatLinks("↑", CAL.parentCats);
+		  this.createCatLinks("→", currentCategories);
+		  this.createCatLinks("↓", CAL.subCats);
+		  this.$container.width("");
+		  this.$container.height("");
+		  this.$container.width(Math.min(((_this$$container$widt = this.$container.width()) !== null && _this$$container$widt !== void 0 ? _this$$container$widt : 0) * 1.1 + 15, ((_$$width = $(window).width()) !== null && _$$width !== void 0 ? _$$width : 0) - 10));
+		  this.$resultList.css({
+			"max-height": "".concat(CAL.dialogHeight, "px"),
+			height: ""
+		  });
+		}
+		getParentCats() {
+		  this.doAPICall({
+			action: "query",
+			titles: "Category:".concat(CAL.currentCategory),
+			prop: "categories"
+		  }, (result) => {
+			var _pages$, _pages$2;
+			if (!result) {
+			  return;
 			}
-			var otext,
-				timestamp,
-				page = CAL._getPageQuery( result );
-			if ( !page || page.ns === 2 ) { return; }
-			var id = page && page.revisions && page.revisions[ 0 ],
-				catNS = this.localCatName; // canonical cat-name
-	
-			if (!id) {
-				return;
+			CAL.parentCats = [];
+			const {
+			  pages
+			} = result.query;
+			if ((_pages$ = pages[0]) !== null && _pages$ !== void 0 && _pages$.missing) {
+			  this.$body.css("cursor", "");
+			  this.$resultList.html(/* @__PURE__ */ import_ext_gadget3.default.createElement("span", {
+				className: CLASS_NAME_CONTAINER_DATA_CATEGORY_LIST_NO_FOUND
+			  }, CAL.msg("cat-not-found")));
+			  this.createCatLinks("→", [CAL.currentCategory]);
+			  return;
 			}
-			this.starttimestamp = result.curtimestamp;
-			otext = id.slots.main[ '*' ];
-			timestamp = id.timestamp;
-	
-			var sourcecat = this.origin;
-			// Check if that file is already in that category
-			if ( mode !== 'remove' && this.regexCatBuilder( targetcat ).test( otext ) ) {
-				// If the new cat is already there, just remove the old one
-				if ( mode === 'move' ) {
-					mode = 'remove';
-					targetcat = sourcecat;
-				} else {
-					this.alreadyThere.push( file[ 0 ] );
-					this.updateCounter();
-					return;
-				}
+			let categories = [];
+			if ((_pages$2 = pages[0]) !== null && _pages$2 !== void 0 && _pages$2.categories) {
+			  [{
+				categories
+			  }] = pages;
 			}
-	
-			// Text modification (following 3 functions are partialy taken from HotCat)
-			var wikiTextBlankOrBidi = '[\\t _\\xA0\\u1680\\u180E\\u2000-\\u200B\\u200E\\u200F\\u2028-\\u202F\\u205F\\u3000]*';
-			// Whitespace regexp for handling whitespace between link components. Including the horizontal tab, but not \n\r\f\v:
-			// a link must be on one single line.
-			// MediaWiki also removes Unicode bidi override characters in page titles (and namespace names) completely.
-			// This is *not* handled, as it would require us to allow any of [\u200E\u200F\u202A-\u202E] between any two
-			// characters inside a category link. It _could_ be done though... We _do_ handle strange spaces, including the
-			// zero-width space \u200B, and bidi overrides between the components of a category link (adjacent to the colon,
-			// or adjacent to and inside of "[[" and "]]").
-			var findCatsRE = new RegExp( '\\[\\[' + wikiTextBlankOrBidi + this.localizedRegex( 14, 'Category' ) + wikiTextBlankOrBidi + ':[^\\]]+\\]\\]', 'g' );
-	
-			function replaceByBlanks( match ) {
-				return match.replace( /(\s|\S)/g, ' ' ); // /./ doesn't match linebreaks. /(\s|\S)/ does.
+			var _iterator5 = _createForOfIteratorHelper(categories), _step5;
+			try {
+			  for (_iterator5.s(); !(_step5 = _iterator5.n()).done; ) {
+				const cat = _step5.value;
+				CAL.parentCats[CAL.parentCats.length] = cat.title.replace(/^[^:]+:/, "");
+			  }
+			} catch (err) {
+			  _iterator5.e(err);
+			} finally {
+			  _iterator5.f();
 			}
-	
-			function find_insertionpoint( wikitext ) {
-				var copiedtext = wikitext
-					.replace( /<!--(\s|\S)*?-->/g, replaceByBlanks )
-					.replace( /<nowiki>(\s|\S)*?<\/nowiki>/g, replaceByBlanks );
-				// Search in copiedtext to avoid that we insert inside an HTML comment or a nowiki "element".
-				var index = -1;
-				findCatsRE.lastIndex = 0;
-				while ( findCatsRE.exec( copiedtext ) !== null ) { index = findCatsRE.lastIndex; }
-	
-				return index;
+			CAL.counterCat++;
+			if (CAL.counterCat === 2) {
+			  this.showCategoryList();
 			}
-	
-			/**
-	*  @brief Adds the new Category by searching the right insert point,
-	*         if there is text after the category section
-	*  @param [string] wikitext
-	*  @param [string] toAdd
-	*  @return Return wikitext
-	*/
-			function addCategory( wikitext, toAdd ) {
-				if ( toAdd && toAdd[ 0 ] ) {
-				// TODO: support sort key
-					var cat_point = find_insertionpoint( wikitext ); // Position of last category
-					var newcatstring = '[[' + catNS + toAdd + ']]';
-					if ( cat_point > -1 ) {
-						var suffix = wikitext.substring( cat_point );
-						wikitext = wikitext.substring( 0, cat_point ) + ( cat_point ? '\n' : '' ) + newcatstring;
-						if ( suffix[ 0 ] && suffix.substr( 0, 1 ) !== '\n' ) { wikitext += '\n'; }
-						wikitext += suffix;
-					} else {
-						if ( wikitext[ 0 ] && wikitext.substr( wikitext.length - 1, 1 ) !== '\n' ) { wikitext += '\n'; }
-	
-						wikitext += ( wikitext[ 0 ] ? '\n' : '' ) + newcatstring;
-					}
-				}
-				return wikitext;
+		  });
+		}
+		getSubCats() {
+		  this.doAPICall({
+			action: "query",
+			list: "categorymembers",
+			cmtype: "subcat",
+			cmlimit: CAL.settings.subcatcount,
+			cmtitle: "Category:".concat(CAL.currentCategory)
+		  }, (result) => {
+			var _result$query;
+			const cats = (result === null || result === void 0 || (_result$query = result.query) === null || _result$query === void 0 ? void 0 : _result$query.categorymembers) || [];
+			CAL.subCats = [];
+			var _iterator6 = _createForOfIteratorHelper(cats), _step6;
+			try {
+			  for (_iterator6.s(); !(_step6 = _iterator6.n()).done; ) {
+				const cat = _step6.value;
+				CAL.subCats[CAL.subCats.length] = cat.title.replace(/^[^:]+:/, "");
+			  }
+			} catch (err) {
+			  _iterator6.e(err);
+			} finally {
+			  _iterator6.f();
 			}
-			// End HotCat functions
-	
-			var text = otext,
-				arr = is_rtl ? '\u2190' : '\u2192', // left and right arrows. Don't use ← and → in the code.
-				sumCmt, // summary comment
-				sumCmtShort;
-			// Fix text
-			switch ( mode ) {
-				case 'add':
-					text = addCategory( text, targetcat );
-					sumCmt = msg( 'summary-add' ).replace( /\$1/g, targetcat );
-					sumCmtShort = '+[[' + catNS + targetcat + ']]';
-					break;
-				case 'copy':
-					text = text.replace( this.regexCatBuilder( sourcecat ), '[[' + catNS + sourcecat + '$1]]\n[[' + catNS + targetcat + '$1]]\n' );
-					sumCmt = msg( 'summary-copy' ).replace( /\$1/g, sourcecat ).replace( /\$2/g, targetcat );
-					sumCmtShort = '+[[' + catNS + sourcecat + ']]' + arr + '[[' + catNS + targetcat + ']]';
-					// If category is added through template:
-					if ( otext === text ) { text = addCategory( text, targetcat ); }
-	
-					break;
-				case 'move':
-					text = text.replace( this.regexCatBuilder( sourcecat ), '[[' + catNS + targetcat + '$1]]\n' );
-					sumCmt = msg( 'summary-move' ).replace( /\$1/g, sourcecat ).replace( /\$2/g, targetcat );
-					sumCmtShort = '±[[' + catNS + sourcecat + ']]' + arr + '[[' + catNS + targetcat + ']]';
-					break;
-				case 'remove':
-					text = text.replace( this.regexCatBuilder( targetcat ), '' );
-					sumCmt = msg( 'summary-remove' ).replace( /\$1/g, targetcat );
-					sumCmtShort = '-[[' + catNS + targetcat + ']]';
-					break;
+			CAL.counterCat++;
+			if (CAL.counterCat === 2) {
+			  this.showCategoryList();
 			}
-	
-			if ( text === otext ) {
-				this.notFound.push( file[ 0 ] );
-				this.updateCounter();
-				return;
+		  });
+		}
+		getCategoryList() {
+		  CAL.counterCat = 0;
+		  this.getParentCats();
+		  this.getSubCats();
+		}
+		updateCats(cat) {
+		  this.$body.css("cursor", "wait");
+		  CAL.currentCategory = cat;
+		  this.$resultList.html(/* @__PURE__ */ import_ext_gadget3.default.createElement("div", null, CAL.msg("loading")));
+		  this.getCategoryList();
+		}
+		findAllLabels() {
+		  if (CAL.isSearchMode) {
+			CAL.$labels = this.$body.find("table.searchResultImage").find("tr>td").eq(1);
+			if (CAL.settings.editpages) {
+			  CAL.$labels = CAL.$labels.add("div.mw-search-result-heading");
 			}
-			otext = text;
-	
-			// Remove {{uncat}} after we checked whether we changed the text successfully.
-			// Otherwise we might fail to do the changes, but still replace {{uncat}}
-			if ( mode !== 'remove' && ( !non || userGrp.indexOf( 'autoconfirmed' ) > -1 ) ) {
-				if ( !this.is_hidden ) {
-					text = this.removeUncat( text );
-					if ( text.length !== otext.length ) { sumCmt += '; ' + msg( 'uncatpref' ); }
-				}
-				text = this.doCleanup( text );
+		  } else {
+			CAL.$labels = this.$body.find("div.gallerytext").add(this.$body.find("div#mw-category-media").find('li[class!="gallerybox"]'));
+			if (CAL.settings.editpages) {
+			  const $pages = this.$body.find("div#mw-pages, div#mw-subcategories").find("li");
+			  CAL.$labels = CAL.$labels.add($pages);
 			}
-	
-			sumCmt += this.summary ? ' ' + this.summary : '';
-	
-			var preM = msg( 'prefix-summary' );
-			var usgM = msg( 'using-summary' );
-			// Try shorten summary
-			if ( preM || usgM )	{
-				sumCmt = ( sumCmt.length > 250 - preM.length - usgM.length ) ?
-					sumCmt + ' (CatAlot)' : preM + sumCmt + usgM;
+		  }
+		}
+		makeClickable() {
+		  this.findAllLabels();
+		  CAL.$labels.addClass(CLASS_NAME_LABEL).onCatALotShiftClick(() => {
+			this.updateSelectionCounter();
+		  });
+		}
+		run() {
+		  if (this.$link.hasClass(CLASS_NAME_CONTAINER_HEAD_LINK_ENABLED)) {
+			this.makeClickable();
+			this.$dataContainer.show();
+			this.$container.resizable({
+			  alsoResize: this.$resultList,
+			  handles: "n",
+			  resize: (event) => {
+				var _$currentTarget$heigh;
+				const $currentTarget = $(event.currentTarget);
+				$currentTarget.css({
+				  left: "",
+				  top: ""
+				});
+				CAL.dialogHeight = (_$currentTarget$heigh = $currentTarget.height()) !== null && _$currentTarget$heigh !== void 0 ? _$currentTarget$heigh : CAL.dialogHeight;
+				this.$resultList.css({
+				  maxHeight: "",
+				  width: ""
+				});
+			  }
+			});
+			this.$resultList.css("max-height", "450px");
+			if (CAL.isSearchMode) {
+			  this.updateCats("Pictures and images");
+			} else {
+			  this.updateCats(CAL.CURRENT_CATEGROY);
 			}
-	
-			if ( sumCmt.length > 254 ) // Try short summary
-			{ sumCmt = sumCmtShort; }
-	
-			var data = {
-				action: 'edit',
-				assert: 'user',
-				summary: sumCmt,
-				title: file[ 0 ],
-				text: text,
-				bot: true,
-				starttimestamp: this.starttimestamp,
-				basetimestamp: timestamp,
-				watchlist: this.settings.watchlist,
-				tags: this.changeTag,
-				token: this.edittoken
-			};
-			if ( this.settings.minor ) {
-				// boolean parameters are quirky, see
-				// https://commons.wikimedia.org/w/api.php?action=help&modules=main#main/datatype/boolean
-				data.minor = true;
-			}
-	
-			this.doAPICall( data, function ( r ) {
-				delete CAL.XHR[ file[ 0 ] ];
-				CAL.markAsDone( file[ 1 ], mode, targetcat );
-				CAL.updateUndoCounter( r );
-			} );
-		},
-	
-		markAsDone: function ( label, mode, targetcat ) {
-			mode = ( function ( m ) {
-				switch ( m ) {
-					case 'add': return 'added-cat';
-					case 'copy': return 'copied-cat';
-					case 'move': return 'moved-cat';
-					case 'remove': return 'removed-cat';
-				}
-			}( mode ) );
-			label.addClass( 'cat_a_lot_markAsDone' ).append( '<br>' + msg( mode, targetcat ) );
-		},
-	
-		updateUndoCounter: function ( r ) {
-			this.updateCounter();
-			if ( !r.edit || r.edit.result !== 'Success' ) { return; }
-			r = r.edit;
-	
-			this.undoList.push( {
-				title: r.title,
-				id: r.newrevid,
-				timestamp: r.newtimestamp
-			} );
-		},
-	
-		updateCounter: function () {
-			this.counterCurrent++;
-			if ( this.counterCurrent > this.counterNeeded ) { this.displayResult(); } else { this.domCounter.text( this.counterCurrent ); }
-		},
-	
-		displayResult: function () {
-			document.body.style.cursor = 'auto';
-			$.removeSpinner( 'fb-dialog' );
-			this.progressDialog.parent()
-				.addClass( 'cat_a_lot_done' )
-				.find( '.ui-dialog-buttonpane button span' ).eq( 0 )
-				.text( mw.msg( 'Returnto', this.localCatName + mw.config.get( 'wgTitle' ) ) );
-			var rep = this.domCounter.parent()
-				.height( 'auto' )
-				.html( '<h3>' + msg( 'done' ) + '</h3>' )
-				.append( msg( 'all-done' ) + '<br>' );
-			if ( this.alreadyThere.length ) {
-				rep.append( '<h5>' + msg( 'skipped-already', this.alreadyThere.length ) + '</h5>' )
-					.append( this.alreadyThere.join( '<br>' ) );
-			}
-	
-			if ( this.notFound.length ) {
-				rep.append( '<h5>' + msg( 'skipped-not-found', this.notFound.length ) + '</h5>' )
-					.append( this.notFound.join( '<br>' ) );
-			}
-	
-			if ( this.connectionError.length ) {
-				rep.append( '<h5>' + msg( 'skipped-server', this.connectionError.length ) + '</h5>' )
-					.append( this.connectionError.join( '<br>' ) );
-			}
-	
-		},
-	
-		/**
-	*  @brief set parameters for API call,
-	*  	convert targetcat to string, get selected pages/files
-	*  @param [dom object] targetcat with data
-	*  @param [string] mode action
-	*  @return Return API call getTargetCat with pages
-	*/
-		doSomething: function ( targetcat, mode ) {
-			var pages = this.getMarkedLabels();
-			if ( !pages.length ) { return alert( mw.msg( 'Ooui-selectfile-placeholder' ) ); }
-			targetcat = $( targetcat ).closest( 'tr' ).data( 'cat' );
-	
-			this.notFound = [];
-			this.alreadyThere = [];
-			this.connectionError = [];
-			this.counterCurrent = 1;
-			this.counterNeeded = pages.length;
-			this.undoList = [];
-			this.XHR = {};
-			this.cancelled = 0;
-			this.summary = '';
-			
-			// Just to make the UI feel snappier when there is no need to wait 
-			// for updateMaxLag to dynamically tune maxSimultaneousReq up/down
-			mw.libs.commons.api.config.maxSimultaneousReq = CAL.maxSimultaneousReq;		
-	
-			if ( $( '#cat_a_lot_comment' )[0].value != '' ) { this.summary = $( '#cat_a_lot_comment' )[0].value; } // TODO custom pre-value
-			if ( this.summary !== null ) {
-				mw.loader.using( [ 'jquery.ui', 'jquery.spinner', 'mediawiki.util' ], function () {
-					CAL.updateMaxLag();
-					CAL.showProgress();
-					CAL.getTargetCat( pages, targetcat, mode );
-				} );
-			}
-		},
-	
-		// Set maxSimultaneousReq value based on maxlag
-		// default mw.libs.commons.api.config.maxSimultaneousReq = 1
-		updateMaxLag: function() {
-			$.ajax( {
-				url: this.apiUrl,
-				dataType: 'json',
-				cache: false,
-				data: {
-					action: 'query',
-					format: 'json',
-					titles: 'Mainpage',
-					maxlag: -1 // Set maxlag to -1 to get the current lag
-				},
-				success: function ( response ) {
-					if ( response.error && response.error.code === 'maxlag' ) {
-						var lag = parseFloat( response.error.lag );
-						if ( lag > 1.5 ) {
-							mw.libs.commons.api.config.maxSimultaneousReq = 1;
-						} else {
-							mw.libs.commons.api.config.maxSimultaneousReq = CAL.maxSimultaneousReq;
-						}
-					}
-					else
-					{
-						// Should not happen, you might want to set a safe default
-						mw.libs.commons.api.config.maxSimultaneousReq = 1;
-					}
-				},
-				error: function () {
-					// On error, you might want to set a safe default
-					mw.libs.commons.api.config.maxSimultaneousReq = 1;
-				}
-			} );
-		},
-	
-		doAPICall: function ( params, callback ) {
-	
-			// Perform edits using mw.libs.commons.api, which
-			// can manage concurrent edits.
-			// https://commons.wikimedia.org/wiki/MediaWiki:Gadget-libAPI.js
-			//
-			// The maximum number of simultaneous edits is defined in
-			// CAL.updateMaxLag() function
-			
-			if ( params.action === 'edit' && !CAL.cancelled ) {
-				var editPageParams = {
-					editType: 'text',
-					title: params.title,
-					text: params.text,
-					bot: params.bot,
-					basetimestamp: params.basetimestamp,
-					starttimestamp: params.starttimestamp,
-					summary: params.summary,
-					   watchlist: params.watchlist,
-					nocreate: 1,
-					tags: params.tags,
-					cb: callback
-				};
-				
-				mw.libs.commons.api.editPage( editPageParams );
-				return;
-			}
-	
-			params = $.extend( {
-				action: 'query',
-				format: 'json'
-			}, params );
-	
-			var i = 0,
-				self = this,
-				apiUrl = this.apiUrl,
-				doCall,
-				handleError = function ( jqXHR, textStatus, errorThrown ) {
-					mw.log( 'Error: ', jqXHR, textStatus, errorThrown );
-					if ( i < 4 ) {
-						window.setTimeout( doCall, 300 );
-						i++;
-					} else if ( params.title ) {
-						self.connectionError.push( params.title );
-						self.updateCounter();
-						return;
-					}
-				};
-			doCall = function () {
-				var xhr = $.ajax( {
-					url: apiUrl,
-					cache: false,
-					dataType: 'json',
-					data: params,
-					type: 'POST',
-					success: callback,
-					error: handleError
-				} );
-	
-				if ( params.action === 'edit' && !CAL.cancelled ) { CAL.XHR[ params.title ] = xhr; }
-			};
-			doCall();
-		},
-	
-		createCatLinks: function ( symbol, list, table ) {
-			list.sort();
-			var button = ( this.settings.button && mw.loader.getState( 'jquery.ui' ) === 'ready' ) ? 1 : 0;
-			for ( var c = 0; c < list.length; c++ ) {
-				var $tr = $( '<tr>' ),
-					$link = $( '<a>', {
-						href: mw.util.getUrl( CAL.localCatName + list[ c ] ),
-						text: list[ c ]
-					} ),
-					$buttons = [];
-				$tr.data( 'cat', list[ c ] );
-				$link.on( 'click', function ( e ) {
-					if ( !e.ctrlKey ) {
-						e.preventDefault();
-						CAL.updateCats( $( this ).closest( 'tr' ).data( 'cat' ) );
-					}
-				} );
-	
-				$tr.append( $( '<td>' ).text( symbol ) )
-					.append( $( '<td>' ).append( $link ) );
-	
-				$buttons.push( $( '<a>' )
-					.text( mw.msg( 'Centralnotice-remove' ) )
-					.on( 'click', function () {
-						CAL.doSomething( this, 'remove' );
-					} )
-					.addClass( 'cat_a_lot_move' )
-				);
-				if ( button ) {
-					$buttons.slice( -1 )[ 0 ].button( {
-						icons: { primary: 'ui-icon-minusthick' },
-						showLabel: false,
-						text: false
-					} );
-				}
-	
-				if ( this.origin ) {
-				// Can't move to source category
-					if ( list[ c ] !== this.origin ) {
-						$buttons.push( $( '<a>' )
-							.text( msg( 'move' ) )
-							.on( 'click', function () {
-								CAL.doSomething( this, 'move' );
-							} )
-							.addClass( 'cat_a_lot_move' )
-						);
-						if ( button ) {
-							$buttons.slice( -1 )[ 0 ].button( {
-								icons: { primary: 'ui-icon-arrowthick-1-e' },
-								showLabel: false,
-								text: false
-							} );
-						}
-	
-						$buttons.push( $( '<a>' )
-							.text( msg( 'copy' ) )
-							.on( 'click', function () {
-								CAL.doSomething( this, 'copy' );
-							} )
-							.addClass( 'cat_a_lot_action' )
-						);
-						if ( button ) {
-							$buttons.slice( -1 )[ 0 ].button( {
-								icons: { primary: 'ui-icon-plusthick' },
-								showLabel: false,
-								text: false
-							} );
-						}
-	
-					}
-				} else {
-					$buttons.push( $( '<a>' )
-						.text( msg( 'add' ) )
-						.on( 'click', function () {
-							CAL.doSomething( this, 'add' );
-						} )
-						.addClass( 'cat_a_lot_action' )
-					);
-					if ( button ) {
-						$buttons.slice( -1 )[ 0 ].button( {
-							icons: { primary: 'ui-icon-plusthick' },
-							showLabel: false,
-							text: false
-						} );
-					}
-	
-				}
-				// TODO CSS may extern
-				var css = button ? { fontSize: '.6em', margin: '0', width: '2.5em' } : {};
-				for ( var b = 0; b < $buttons.length; b++ ) { $tr.append( $( '<td>' ).append( $buttons[ b ].css( css ) ) ); }
-	
-				table.append( $tr );
-			}
-		},
-	
-		getCategoryList: function () {
-			this.catCounter = 0;
-			this.getParentCats();
-			this.getSubCats();
-		},
-	
-		_getPageQuery: function ( data ) {
-		// There should be only one, but we don't know its ID
-			if ( data && data.query && data.query.pages ) {
-				data = data.query.pages;
-				for ( var p in data ) { return data[ p ]; }
-			}
-		},
-	
-		/**
-	*  @brief takes this.currentCategory if redir_category is configured
-	** Cat pages with more than one cat link are still not supported for sure
-	*  @return soft redirected cat
-	*/
-		solveSoftRedirect: function () {
-			this.doAPICall( {
-				prop: 'links', // TODO: For more accuracy the revisions could be checked
-				titles: 'Category:' + this.currentCategory,
-				// 'rvprop': 'content',
-				// 'pllimit': 'max',
-				plnamespace: 14
-			}, function ( page ) {
-				page = CAL._getPageQuery( page );
-				if ( page ) {
-					var lks = page.links;
-					if ( lks && lks.length === 1 && lks[ 0 ].title ) {
-						CAL.currentCategory = lks[ 0 ].title.replace( reCat, '' );
-						$searchInput.val( CAL.currentCategory );
-						return CAL.getCategoryList();
-					} else {
-					// TODO? better translatable warning message: "Please solve the category soft redirect manually!"
-						$resultList.html( '<span id="cat_a_lot_no_found">' + mw.msg( 'Apifeatureusage-warnings', mw.msg( 'Categorytree-not-found', CAL.currentCategory ) ) + '</span>' );
-					}
-				}
-			} );
-		},
-	
-		showCategoryList: function () {
-			if ( this.settings.redir_category && this.settings.redir_category === this.parentCats[ 0 ] ) { return this.solveSoftRedirect(); }
-	
-			var table = $( '<table>' );
-	
-			this.createCatLinks( '↑', this.parentCats, table );
-			this.createCatLinks( '→', [ this.currentCategory ], table );
-			// Show on soft-redirect
-			if ( $searchInput.val() === this.currentCategory && this.origin !== this.currentCategory ) { this.createCatLinks( '→', [ this.origin ], table ); }
-			this.createCatLinks( '↓', this.subCats, table );
-	
-			$resultList.empty();
-			$resultList.append( table );
-	
-			document.body.style.cursor = 'auto';
-	
-			// Reset width
-			$container.width( '' );
-			$container.height( '' );
-			$container.width( Math.min( table.width() * 1.1 + 15, $( window ).width() - 10 ) );
-	
-			$resultList.css( {
-				maxHeight: Math.min( this.setHeight, $( window ).height() - $container.position().top - $settingsLink.outerHeight() - $selections.outerHeight() - 15 ),
-				height: ''
-			} );
-			table.width( '100%' );
-			$container.height( Math.min( $container.height(), $head.offset().top - $container.offset().top + 10 ) );
-			$container.offset( { left: $( window ).width() - $container.outerWidth() } ); // Fix overlap
-		},
-	
-		updateCats: function ( newcat ) {
-			document.body.style.cursor = 'wait';
-			this.currentCategory = newcat;
-			$resultList.html( '<div class="cat_a_lot_loading">' + mw.msg( 'cat-a-lot-loading' ) + '</div>' );
-			this.getCategoryList();
-		},
-	
-		doUndo: function () {
-			this.cancelled = 0;
-			this.doAbort();
-			if ( !this.undoList.length ) { return; }
-	
-			$( '.cat_a_lot_feedback' ).removeClass( 'cat_a_lot_done' );
-			this.counterNeeded = this.undoList.length;
-			this.counterCurrent = 1;
-	
-			document.body.style.cursor = 'wait';
-	
-			var query = {
-				action: 'edit',
-				user: mw.config.get( 'wgUserName' ),
-				bot: true,
-				starttimestamp: this.starttimestamp,
-				watchlist: this.settings.watchlist,
-				tags: this.changeTag,
-				token: this.edittoken
-			};
-			if ( this.settings.minor ) {
-				// boolean parameters are quirky, see
-				// https://commons.wikimedia.org/w/api.php?action=help&modules=main#main/datatype/boolean
-				query.minor = true;
-			}
-			for ( var i = 0; i < this.undoList.length; i++ ) {
-				var uID = this.undoList[ i ];
-				query.title = uID.title;
-				query.undo = uID.id;
-				query.basetimestamp = uID.timestamp;
-				this.doAPICall( query, function ( r ) {
-				// TODO: Add "details" to progressbar?
-				// $resultList.append( [mw.msg('Filerevert-submit') + " done " + r.edit.title, '<br>' ] );
-					if ( r && r.edit ) { mw.log( 'Revert done', r.edit.title ); }
-					CAL.updateCounter();
-				} );
-			}
-		},
-	
-		doAbort: function () {
-			for ( var t in this.XHR ) { this.XHR[ t ].abort(); }
-	
-			if ( this.cancelled ) { // still not for undo
-				this.progressDialog.remove();
-				this.toggleAll( false );
-				$head.last().show();
-				document.body.style.cursor = 'auto';
-			}
-			this.cancelled = 1;
-			
-			// If not ready, then send abort to mw.libs.commons.api
-			if ( this.counterCurrent < this.counterNeeded ) {
-				mw.libs.commons.api.abortPendingRequests();
-			}
-		},
-	
-		showProgress: function () {
-			document.body.style.cursor = 'wait';
-			this.progressDialog = $( '<div>' )
-				.html( ' ' + msg( 'editing' ) + ' <span id="cat_a_lot_current">' + CAL.counterCurrent + '</span> ' + msg( 'of' ) + CAL.counterNeeded )
-				.prepend( $.createSpinner( { id: 'fb-dialog', size: 'large' } ) )
-				.dialog( {
-					width: 450,
-					modal: true,
-					resizable: false,
-					draggable: false,
-					// closeOnEscape: true,
-					dialogClass: 'cat_a_lot_feedback',
-					buttons: [ {
-						text: mw.msg( 'Cancel' ), // Stops all actions
-						click: function () {
-							$( this ).dialog( 'close' );
-						}
-					} ],
-					close: function () {
-						CAL.cancelled = 1;
-						CAL.doAbort();
-						$( this ).remove();
-					},
-					open: function ( event, ui ) { // Workaround modify
-						ui = $( this ).parent();
-						ui.find( '.ui-dialog-titlebar' ).hide();
-						ui.find( '.ui-dialog-buttonpane.ui-widget-content' )
-							.removeClass( 'ui-widget-content' );
-					/* .find( 'span' ).css( { fontSize: '90%' } )*/
-					}
-				} );
-			if ( $head.children().length < 3 ) {
-				$( '<span>' )
-					.css( {
-						'float': 'right',
-						fontSize: '75%'
-					} )
-					.append( [ '[ ',
-						$( '<a>', { title: 'Revert all last done edits' } ) // TODO i18n
-							.on( 'click', function () {
-								if ( window.confirm( mw.msg( 'Apifeatureusage-warnings', this.title + '⁉' ) ) ) {
-									CAL.doUndo();
-									$( this ).parent().remove();
-								}
-								return false;
-							} )
-							.addClass( 'new' )
-							.text( mw.msg( 'Filerevert-submit' ) ),
-						' ]'
-					] ).insertAfter( $link );
-			}
-	
-			this.domCounter = $( '#cat_a_lot_current' );
-		},
-	
-		minimize: function ( e ) {
-			CAL.top = Math.max( 0, $container.position().top );
-			CAL.height = $container.height();
-			$dataContainer.hide();
-			$container.animate( {
-				height: $head.height(),
-				top: $( window ).height() - $head.height() * 1.4
-			}, function () {
-				$( e.target ).one( 'click', CAL.maximize );
-			} );
-		},
-	
-		maximize: function ( e ) {
-			$dataContainer.show();
-			$container.animate( {
-				top: CAL.top,
-				height: CAL.height
-			}, function () {
-				$( e.target ).one( 'click', CAL.minimize );
-			} );
-		},
-	
-		run: function () {
-			if ( $( '.cat_a_lot_enabled' )[ 0 ] ) {
-				this.makeClickable();
-				
-				if ( this.searchmode === 'mediasearch' ) {
-					setTimeout( function() {
-						
-						// rerun makeClickable() when Vue.js init
-						// is stabilized
-						CAL.makeClickable();
-						
-						// track Vue.js tab changes
-						CAL.observeTabChange();
-					}, 300 );
-				}
-				
-				if ( !this.executed ) { // only once
-					$selectInvert.text( mw.msg( 'Checkbox-invert' ) );
-					if ( this.settings.editpages && this.pageLabels[ 0 ] ) {
-						$selectFiles.text( mw.msg( 'Prefs-files' ) );
-						$selectPages.text( mw.msg( 'Categories' ) ).parent().show();
-					}
-					$link.after( $( '<a>' )
-						.text( '–' )
-						.css( { fontWeight: 'bold', marginLeft: '.7em' } )
-						.one( 'click', this.minimize )
-					);
-				}
-				$dataContainer.show();
-				$container.one( 'mouseover', function () {
-					$( this )
-						.resizable( {
-							handles: 'n',
-							alsoResize: '#cat_a_lot_category_list',
-							resize: function () {
-								$resultList
-									.css( {
-										maxHeight: '',
-										width: ''
-									} );
-							},
-							start: function ( e, ui ) { // Otherwise box get static if sametime resize with draggable
-								ui.helper.css( {
-									top: ui.helper.offset().top - $( window ).scrollTop(),
-									position: 'fixed'
-								} );
-							},
-							stop: function () {
-								CAL.setHeight = $resultList.height();
-							}
-						} )
-						.draggable( {
-							cursor: 'move',
-							start: function ( e, ui ) {
-								ui.helper.on( 'click.prevent',
-									function ( e ) { e.preventDefault(); }
-								);
-								ui.helper.css( 'height', ui.helper.height() );
-							},
-							stop: function ( e, ui ) {
-								setTimeout(
-									function () {
-										ui.helper.off( 'click.prevent' );
-									}, 300
-								);
-							}
-						} )
-						.one( 'mousedown', function () {
-							$container.height( $container.height() ); // Workaround to calculate
-						} );
-					$resultList
-						.css( { maxHeight: 450 } );
-				} );
-				this.updateCats( this.origin || 'Images' );
-	
-				$link.html( $( '<span>' )
-					.text( '×' )
-					.css( { font: 'bold 2em monospace', lineHeight: '.75em' } )
-				);
-				$link.next().show();
-				if ( this.cancelled ) { $head.last().show(); }
-				mw.cookie.set( 'catAlotO', ns ); // Let stay open on new window
-			} else { // Reset
-				$dataContainer.hide();
-				$container
-					.draggable( 'destroy' )
-					.resizable( 'destroy' )
-					.removeAttr( 'style' );
-					
-				// Unbind click handlers
-				this.labels.off( 'click.catALot' );
-				
-				// Remove capturing event handlers
-				if ( this.searchmode === 'mediasearch' ) {
-					this.clearMediaSearchEventHandlers();
-				}
-			
-				// Disconnect the MutationObserver
-				if (this.resultsObserver) {
-					this.resultsObserver.disconnect();
-					this.resultsObserver = null;
-				}
-				
-				if (this.tabsObserver) {
-					this.tabsObserver.disconnect();
-					this.tabsObserver = null;		    	
-				}
-				
-				this.setHeight = 450;
-				$link.text( 'Cat-a-lot' )
-					.nextAll().hide();
-				this.executed = 1;
-				mw.cookie.set( 'catAlotO', null );
-			}
-		},
-	
-		manageSettings: function () {
-			mw.loader.using( [ 'ext.gadget.SettingsManager', 'ext.gadget.SettingsUI', 'jquery.ui' ], CAL._manageSettings );
-		},
-	
-		_manageSettings: function () {
-			mw.libs.SettingsUI( CAL.defaults, 'Cat-a-lot' )
-				.show()
-				.done( function ( s, verbose, loc, settingsOut, $dlg ) {
-					var mustRestart = false,
-						_restart = function () {
-							if ( !mustRestart ) { return; }
-							$container.remove();
-							CAL.labels.off( 'click.catALot' );
-							CAL.init();
-						},
-						_saveToJS = function () {
-							var opt = mw.libs.settingsManager.option( {
-									optionName: 'catALotPrefs',
-									value: CAL.settings,
-									encloseSignature: 'catALot',
-									encloseBlock: '////////// Cat-a-lot user preferences //////////\n',
-									triggerSaveAt: /Cat.?A.?Lot/i,
-									editSummary: msg( 'pref-save-summary' )
-								} ),
-								oldHeight = $dlg.height(),
-								$prog = $( '<div>' );
-	
-							$dlg.css( 'height', oldHeight )
-								.html( '' );
-							$prog.css( {
-								height: Math.round( oldHeight / 8 ),
-								'margin-top': Math.round( ( 7 * oldHeight ) / 16 )
-							} )
-								.appendTo( $dlg );
-	
-							$dlg.parent()
-								.find( '.ui-dialog-buttonpane button' )
-								.button( 'option', 'disabled', true );
-	
-							opt.save()
-								.done( function ( text, progress ) {
-									$prog.progressbar( {
-										value: progress
-									} );
-									$prog.fadeOut( function () {
-										$dlg.dialog( 'close' );
-										_restart();
-									} );
-								} )
-								.progress( function ( text, progress ) {
-									$prog.progressbar( {
-										value: progress
-									} );
-								// TODO: Add "details" to progressbar
-								} )
-								.fail( function ( text ) {
-									$prog.addClass( 'ui-state-error' );
-									$dlg.prepend( $( '<p>' )
-										.text( text ) );
-								} );
-						};
-					$.each( settingsOut, function ( n, v ) {
-						if ( v.forcerestart && CAL.settings[ v.name ] !== v.value ) { mustRestart = true; }
-						CAL.settings[ v.name ] = CAL.catALotPrefs[ v.name ] = v.value;
-					} );
-					switch ( loc ) {
-						case 'page':
-							$dlg.dialog( 'close' );
-							_restart();
-							break;
-						case 'account-publicly':
-							_saveToJS();
-							break;
-					}
-				} );
-		},
-	
-		_initSettings: function () {
-			if ( this.settings.watchlist ) { return; }
-			this.catALotPrefs = window.catALotPrefs || {};
-			for ( var i = 0; i < this.defaults.length; i++ ) {
-				var v = this.defaults[ i ];
-				v.value = this.settings[ v.name ] = ( this.catALotPrefs[ v.name ] === undefined ? v['default'] : this.catALotPrefs[ v.name ] );
-				v.label = msg( v.label_i18n );
-				if ( v.select_i18n ) {
-					v.select = {};
-					$.each( v.select_i18n, function ( i18nk, val ) {
-						v.select[ msg( i18nk ) ] = val;
-					} );
-				}
-			}
-		},
-		/* eslint-disable camelcase */
-		defaults: [ {
-			name: 'watchlist',
-			'default': 'preferences',
-			label_i18n: 'watchlistpref',
-			select_i18n: {
-				watch_pref: 'preferences',
-				watch_nochange: 'nochange',
-				watch_watch: 'watch',
-				watch_unwatch: 'unwatch'
-			}
-		}, {
-			name: 'minor',
-			'default': false,
-			label_i18n: 'minorpref'
-		}, {
-			name: 'editpages',
-			'default': project !== 'commonswiki', // on Commons false
-			label_i18n: 'editpagespref',
-			forcerestart: true
-		}, {
-			name: 'docleanup',
-			'default': false,
-			label_i18n: 'docleanuppref'
-		}, {
-			name: 'subcatcount',
-			'default': 50,
-			min: 5,
-			max: 500,
-			label_i18n: 'subcatcountpref',
-			forcerestart: true
-		}, {
-			name: 'uncat',
-			'default': project === 'commonswiki', // on Commons true
-			label_i18n: 'uncatpref'
-		}, {
-			name: 'button',
-			'default': true,
-			label_i18n: 'buttonpref'
-		} ]
-	/* eslint-enable camelcase */
+		  } else {
+			this.$dataContainer.hide();
+			this.$container.resizable("destroy");
+			this.$container.css("width", "");
+			CAL.$labels.off("click.catALot");
+		  }
+		}
+	  }
+	  if (wgNamespaceNumber === -1 && wgCanonicalSpecialPageName === "Search" || wgNamespaceNumber === targetNamespace) {
+		if (wgNamespaceNumber === -1) {
+		  CAL.isSearchMode = true;
+		}
+		/*! Cat-a-lot messages | CC-BY-SA-4.0 <https://qwbk.cc/H:CC-BY-SA-4.0> */
+		setMessages();
+		void (0, import_ext_gadget2.getBody)().then(($body) => {
+		  new CAL($body).buildElements();
+		});
+	  }
 	};
-	
-	// The gadget is not immediately needed, so let the page load normally
-	window.setTimeout( function () {
-		non = mw.config.get( 'wgUserName' );
-		if ( non ) {
-			if ( mw.config.get( 'wgRelevantUserName' ) === non ) { non = 0; } else {
-				$.each( [ 'sysop', 'file-maintainer', 'patroller', 'bot', 'flood' ], function ( i, v ) {
-					non = $.inArray( v, userGrp ) === -1;
-					return non;
-				} );
+	//! src/Cat-a-lot/modules/extendJQueryPrototype.ts
+	var extendJQueryPrototype = () => {
+	  $.fn.extend({
+		onCatALotShiftClick: function(callback) {
+		  let prevCheckbox;
+		  this.on("click.catALot", (event) => {
+			if (!event.ctrlKey) {
+			  event.preventDefault();
 			}
-		} else { non = 1; }
-	
-		switch ( ns ) {
-			case 14:
-				CAL.searchmode = 'category';
-				CAL.origin = mw.config.get( 'wgTitle' );
-				break;
-			case -1:
-				CAL.searchmode = {
-				// list of accepted special page names mapped to search mode names
-					Contributions: 'contribs',
-					Listfiles: non ? null : 'listfiles',
-					Prefixindex: non ? null : 'prefix',
-					Search: 'search',
-					MediaSearch: 'mediasearch',
-					Uncategorizedimages: 'gallery'
-				}[ mw.config.get( 'wgCanonicalSpecialPageName' ) ];
-				break;
-			case 2:
-			case 0:
-				CAL.searchmode = 'gallery';
-				var parents = $( '#mw-normal-catlinks ul' ).find( 'a[title]' ), n;
-				parents.each( function ( i ) {
-					if ( new RegExp( mw.config.get( 'wgTitle' ), 'i' ).test( $( this ).text() ) ) {
-						n = i;
-						return false;
-					}
-				} );
-				CAL.origin = parents.eq( n || 0 ).text();
-		}
-	
-		if ( CAL.searchmode ) {
-			var loadingLocalizations = 1;
-			var loadLocalization = function ( lang, cb ) {
-				loadingLocalizations++;
-				switch ( lang ) {
-					case 'zh-hk':
-					case 'zh-mo':
-					case 'zh-tw':
-						lang = 'zh-hant';
-						break;
-					case 'zh':
-					case 'zh-cn':
-					case 'zh-my':
-					case 'zh-sg':
-						lang = 'zh-hans';
-						break;
-				}
-	
-				$.ajax( {
-					url: commonsURL,
-					dataType: 'script',
-					data: {
-						title: 'MediaWiki:Gadget-Cat-a-lot.js/' + lang,
-						action: 'raw',
-						ctype: 'text/javascript',
-						// Allow caching for 28 days
-						maxage: 2419200,
-						smaxage: 2419200
-					},
-					cache: true,
-					success: cb,
-					error: cb
-				} );
-			};
-			var maybeLaunch = function () {
-				loadingLocalizations--;
-				function init() {
-					$( function () {
-						CAL.init();
-					} );
-				}
-				if ( !loadingLocalizations ) { mw.loader.using( [ 'user' ], init, init ); }
-			};
-	
-			var userlang = mw.config.get( 'wgUserLanguage' ),
-				contlang = mw.config.get( 'wgContentLanguage' );
-			if ( userlang !== 'en' ) { loadLocalization( userlang, maybeLaunch ); }
-			if ( $.inArray( contlang, [ 'en', userlang ] ) === -1 ) { loadLocalization( contlang, maybeLaunch ); }
-			maybeLaunch();
-		}
-	}, 400 );
-	
-	/**
-	 * When clicking a cat-a-lot label with Shift pressed, select all labels between the current and last-clicked one.
-	 */
-	$.fn.catALotShiftClick = function ( cb ) {
-		var prevCheckbox = null,
-			$box = this;
-	
-		// When our boxes are clicked...
-		$box.on( 'click.catALot', function ( e, originalEvent ) {
-	
-			var event = originalEvent || e;
-	
-			// Allow opening the links in Special:Search
-			if ( CAL.searchmode === 'search' ) {
-				// Check if the clicked element is a link
-				if ( $( event.target ).closest( 'a' ).length ) {
-					// It's a link; allow default action (open the link)
-					return;
-				}
+			this.parents("body").find(".".concat(CLASS_NAME_LABEL_LAST_SELECTED)).removeClass(CLASS_NAME_LABEL_LAST_SELECTED);
+			let $thisControl = $(event.target);
+			if (!$thisControl.hasClass(CLASS_NAME_LABEL)) {
+			  $thisControl = $thisControl.parents(".".concat(CLASS_NAME_LABEL));
 			}
-			
-			// Prevent default behavior and stop propagation
-			if ( !event.ctrlKey ) {
-				event.preventDefault();
-				event.stopPropagation();
+			$thisControl.addClass(CLASS_NAME_LABEL_LAST_SELECTED).toggleClass(CLASS_NAME_LABEL_SELECTED);
+			if (prevCheckbox && event.shiftKey) {
+			  const method = $thisControl.hasClass(CLASS_NAME_LABEL_SELECTED) ? "addClass" : "removeClass";
+			  this.slice(Math.min(this.index(prevCheckbox), this.index($thisControl)), Math.max(this.index(prevCheckbox), this.index($thisControl)) + 1)[method](CLASS_NAME_LABEL_SELECTED);
 			}
-			
-			// Highlight last selected
-			$( '#cat_a_lot_last_selected' ).removeAttr( 'id' );
-			
-			var $thisControl = $( event.target ), method;
-	
-			// Ensure we're working with the correct label
-			if ( !$thisControl.hasClass( 'cat_a_lot_label' ) ) {
-				$thisControl = $thisControl.closest( '.cat_a_lot_label' );
-			}
-	
-			$thisControl.attr( 'id', 'cat_a_lot_last_selected' )
-				.toggleClass( 'cat_a_lot_selected' );
-				
-			// If one has been clicked before and shift key is held...
-			if ( prevCheckbox !== null && event.shiftKey ) {
-				method = $thisControl.hasClass( 'cat_a_lot_selected' ) ? 'addClass' : 'removeClass';
-				
-				// Check or uncheck this one and all in-between checkboxes
-				$box.slice(
-					Math.min( $box.index( prevCheckbox ), $box.index( $thisControl ) ),
-					Math.max( $box.index( prevCheckbox ), $box.index( $thisControl ) ) + 1
-				)[ method ]( 'cat_a_lot_selected' );
-			}
-			
-			// Update the prevCheckbox variable to the one clicked now
 			prevCheckbox = $thisControl;
-			if ( $.isFunction( cb ) ) { cb(); }
-		} );
-		return $box;
+			if (typeof callback === "function") {
+			  callback();
+			}
+		  });
+		  return this;
+		}
+	  });
 	};
+	//! src/Cat-a-lot/Cat-a-lot.ts
+	/*! Cat-a-lot | CC-BY-SA-4.0 <https://qwbk.cc/H:CC-BY-SA-4.0> */
+	extendJQueryPrototype();
+	catALot();
 	
-	}( jQuery, mediaWiki ) );
-	// </nowiki>
+	})();
