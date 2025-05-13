@@ -20,8 +20,8 @@
 /* eslint one-var:0, vars-on-top:0, no-underscore-dangle:0, valid-jsdoc:0,
 curly:0, camelcase:0, no-useless-escape:0, no-alert:0 */ // extends: wikimedia
 /* jshint unused:true, forin:false, smarttabs:true, loopfunc:true, browser:true */
-mw.loader.load( '//testingcf.jsdelivr.net/gh/Mustafabot/js-MoegiriPedia/SettingsUI.js');
-mw.loader.load( '//testingcf.jsdelivr.net/gh/Mustafabot/js-MoegiriPedia/SettingsManager.js');
+mw.loader.load( '//fastly.jsdelivr.net/gh/Mustafabot/js-MoegiriPedia/SettingsUI.js');
+mw.loader.load( '//fastly.jsdelivr.net/gh/Mustafabot/js-MoegiriPedia/SettingsManager.js');
 ( function ( $, mw ) {
 'use strict';
 
