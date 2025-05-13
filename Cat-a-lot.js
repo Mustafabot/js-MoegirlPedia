@@ -1384,7 +1384,7 @@ that concept on your wiki, set it to null. Use blanks, not underscores. */
 	},
 
 	manageSettings: function () {
-		mw.loader.using( ['//cdn.jsdelivr.net/gh/Mustafabot/js-MoegiriPedia/SettingsManager.js','//cdn.jsdelivr.net/gh/Mustafabot/js-MoegiriPedia/SettingsUI.js',jquery.ui], CAL._manageSettings );
+		mw.loader.using( ['//cdn.jsdelivr.net/gh/Mustafabot/js-MoegiriPedia/SettingsManager.js','//cdn.jsdelivr.net/gh/Mustafabot/js-MoegiriPedia/SettingsUI.js','jquery.ui'], CAL._manageSettings );
 	},
 
 	_manageSettings: function () {
