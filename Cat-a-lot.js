@@ -20,8 +20,6 @@
 /* eslint one-var:0, vars-on-top:0, no-underscore-dangle:0, valid-jsdoc:0,
 curly:0, camelcase:0, no-useless-escape:0, no-alert:0 */ // extends: wikimedia
 /* jshint unused:true, forin:false, smarttabs:true, loopfunc:true, browser:true */
-mw.loader.load( '//fastly.jsdelivr.net/gh/Mustafabot/js-MoegiriPedia/SettingsUI.js');
-mw.loader.load( '//fastly.jsdelivr.net/gh/Mustafabot/js-MoegiriPedia/SettingsManager.js');
 ( function ( $, mw ) {
 'use strict';
 
@@ -1386,7 +1384,7 @@ that concept on your wiki, set it to null. Use blanks, not underscores. */
 	},
 
 	manageSettings: function () {
-		mw.loader.using( [ 'ext.gadget.SettingsManager', 'ext.gadget.SettingsUI', 'jquery.ui' ], CAL._manageSettings );
+		mw.loader.using( ['//cdn.jsdelivr.net/gh/Mustafabot/js-MoegiriPedia/SettingsManager.js','//cdn.jsdelivr.net/gh/Mustafabot/js-MoegiriPedia/SettingsUI.js',jquery.ui], CAL._manageSettings );
 	},
 
 	_manageSettings: function () {

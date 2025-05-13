@@ -4,7 +4,7 @@
  * Simple user interface for managing settings
  * This script only cares for the user interface.
  * It remains your task to save the settings 
- * e.g. using 'ext.gadget.SettingsManager' or 'jquery.jStorage' or 'jquery.cookie'
+ * e.g. using 'ext.gadget.SettingsManager' or 'jquery.jStorage' or 'mediawiki.cookie'
  *
  * @rev 1 (2012-09-19)
  * @author Rillke, 2012
@@ -46,7 +46,7 @@
 	 
 	var smMembers, smPrivate, nOEvents = 'input.numbersOnly keyup.numbersOnly';
 	
-	$('.numbersOnly').off(nOEvents).live(nOEvents, function () {
+	$('.numbersOnly').off(nOEvents).on(nOEvents, function () {
 		var oldVal = this.value,
 			newVal = oldVal.replace(/[^0-9]/g,'');
 		if (oldVal !== newVal) this.value = newVal;
@@ -140,8 +140,6 @@
 				$progress = new $.Deferred();
 				
 			mw.loader.using([
-				'jquery.ui', 
-				'jquery.ui', 
 				'jquery.ui', 
 				'mediawiki.user',
 				'ext.gadget.libJQuery'

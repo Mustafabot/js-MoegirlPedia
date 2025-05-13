@@ -1,4 +1,6 @@
 /**
+ * Localization required. [[User:Liangent]] 2013年4月8日 (一) 10:20 (UTC)
+ *
  * [[:commons:MediaWiki:Gadget-SettingsManager.js]]
  * Managing user preferences of scripts
  * Managing gadgets and gadget preferences
@@ -16,16 +18,12 @@
 
 // Set jsHint-options.
 /*jshint forin:true, noarg:true, noempty:true, eqeqeq:true, bitwise:true, strict:true, undef:true, curly:false, browser:true*/
-
-( function ( $, mw ) {
+mw.loader.load(['jquery.json', 'mediawiki.user', 'user.options']);
+( function ( $, mw, undefined ) {
 "use strict";
 
-// Different tokes exist only to confuse the user (at least in 2012)
-// All of them carry the same value except the watchlist token
-if (!mw.user.tokens.exists('preferencesToken')) mw.user.tokens.set('preferencesToken', mw.user.tokens.get('editToken'));
-
 /**
-* Refresh preferences-token
+* Refresh edit token
 *
 * @example
 *      refreshToken( function() { doGoodStuff.retry(); } );
@@ -35,19 +33,20 @@ if (!mw.user.tokens.exists('preferencesToken')) mw.user.tokens.set('preferencesT
 * @return {Object} a jQuery deferred-object-queue
 */
 var refreshToken = function(cb) {
-	var mwa = new mw.Api(),
+	var mwa = new mw.Api({ userAgent: 'Gadget-SettingsManager' }),
 		apiDef = mwa.get( {
-			meta: 'userinfo',
-			uiprop: 'preferencestoken'
+			action: 'query',
+			meta: 'tokens',
+			type: 'csrf'
 		} );
 		
 	apiDef.done(function(result) {
-		if (!result.query || !result.query.userinfo) return cb( false, 'wrong-response' );
-		mw.user.tokens.set( 'preferencesToken', result.query.userinfo.preferencestoken );
+		if (!result.query || !result.query.tokens) return cb( false, 'wrong-response' );
+		mw.user.tokens.set( 'csrfToken', result.query.tokens.csrftoken );
 		cb( true );
 	});
 	apiDef.fail(function(code, result) {
-		if (!result.query || !result.query.userinfo) return cb( false, code );
+		if (!result.query || !result.query.tokens) return cb( false, code );
 	});
 	return apiDef;
 };
@@ -73,8 +72,6 @@ var valByString = function(identifier) {
 	}
 	return objCurrent;
 };
-
-var mwPrefPrefix = 'userjs-sm-';
 
 var sm = {
 	version: '0.1.0.1',
@@ -221,7 +218,7 @@ var sm = {
 				return new RegExp('\\n?\\n?\\/\\/' + escSig + '(?:.|\\n)*' + escSig + 'End\\/\\/', 'g');
 			},
 			escapeRE: function(string) {
-				string = mw.RegExp.escape(string);
+				string = $.escapeRE(string);
 				
 				var specials = ['t', 'n', 'v', '0', 'f'];
 				$.each(specials, function(i, s) {
@@ -239,7 +236,7 @@ var sm = {
 				};
 			},
 			process: function() {
-				var JSONVal = JSON.stringify( specs.value ),
+				var JSONVal = $.toJSON( specs.value ),
 					sig = specs.encloseSignature,
 					tsa = specs.triggerSaveAt,
 					opn = specs.optionName,
@@ -448,6 +445,9 @@ var sm = {
 	*      var commonJS = mw.libs.settingsManager.script( 'User:Example/common.js' );
 	*      commonJS.set( '// empty!' ).setSummary( 'Removing Content' ).save( function() { console.log( 'Successfully removed content from ' + commonJS.getSource() ) } )
 	*
+	*      // Enable a gadget and load it:
+	*      mw.libs.settingsManager.gadget( 'Slideshow' ).load().enable();
+	*
 	* @param source {String} The name of the JavaScript file with namespace.
 	* @context {mw.libs.settingsManager}
 	* @return {Object} script-object you can use for performing actions on.
@@ -476,7 +476,7 @@ var sm = {
 				edit = {
 					action: 'edit',
 					title: source,
-					text: 'object' === typeof content ? JSON.stringify(content) : content,
+					text: 'object' === typeof content ? $.toJSON(content) : content,
 					summary: summary,
 					watchlist: 'nochange',
 					recreate: 1
@@ -505,7 +505,8 @@ var sm = {
 				return eval(content);
 			},
 			parseJSON: function() {
-				return ('string' === typeof content && content !== '') ? JSON.parse( content ) : '';
+				// jquery.json - plugin required
+				return ('string' === typeof content && '' !== content) ? $.secureEvalJSON( content ) : '';
 			},
 			// Supplied callback called with a string as second argument
 			fetchText: function(cb, errCb) {
@@ -562,7 +563,7 @@ var sm = {
 	*      mw.libs.settingsManager.switchPref( 'myOption', 'new value' );
 	*
 	* @param prefName {String} The name of the preference.
-	* @param prefVal {String} The new value the preference should set to.
+	* @param prefName {String} The new value the preference should set to.
 	* @param cb {Function} Callback in case of success.
 	* @param cb {Function} Callback in case of an error.
 	* @context {mw.libs.settingsManager}
@@ -571,17 +572,16 @@ var sm = {
 	switchPref: function(prefName, prefVal, cb, errCb) {
 		var mwa = new mw.Api(),
 			args = arguments,
-			prefString = (typeof prefVal === 'object') ? JSON.stringify(prefVal) : prefVal,
 			apiDef = mwa.post( {
 				action: 'options',
-				token: mw.user.tokens.get('preferencesToken'),
+				token: mw.user.tokens.get('csrfToken'),
 				optionname: prefName,
-				optionvalue: prefString || 0
+				optionvalue: prefVal || 0
 			} );
 
 		// If we changed a preference successfully, update user.options reflecting the change
 		apiDef.done( function() {
-			mw.user.options.set( prefName, prefString );
+			mw.user.options.set( prefName, prefVal );
 		} );
 		if (cb) apiDef.done( cb );
 		// Catch badtoken and some other common errors
@@ -597,7 +597,7 @@ var sm = {
 				case 'ok-but-empty':
 					setTimeout( function() {
 						return sm.switchPref.apply( sm, Array.prototype.slice.call(args, 0) );
-					}, 2500 );
+					}, 1000 );
 					return false;
 				default:
 					return (errCb && errCb(code, result) && false);
@@ -605,124 +605,6 @@ var sm = {
 		} );
 		return apiDef;
 	},
-	/**
-	* Switch a gadget preference using Ajax!
-	*
-	* @example
-	*      mw.libs.settingsManager.switchGadgetPref( 'myOption', 'new value' ).done(function() { console.log("DONE!") });
-	*
-	* @param prefName {String} The name of the preference.
-	* @param prefVal {String} The new value the preference should set to.
-	* @context {mw.libs.settingsManager}
-	* @return {Object} $.Deferred; a jQuery deferred-object-queue.
-	*/
-	switchGadgetPref: function(prefName, prefVal) {
-		var $def = $.Deferred();
-
-		sm.switchPref( mwPrefPrefix + prefName, prefVal, $.proxy( $def.resolve, $def ), $.proxy( $def.reject, $def ) );
-		return $def;
-	},
-	
-	/**
-	* Fetch a Gadget preference from various sources!
-	*
-	* @example
-	*      mw.libs.settingsManager.fetchGadgetSetting( 'mySetting', ['storage', 'option'] ).done(function(prefName, settingValue) { console.log("DONE!") });
-	*
-	* @param prefName {String} The name of the preference.
-	* @param prefSources {Array} One or more of the following values 'storage', 'cookie', 'option', 'window'. Default (if not passed): 
-	*                             All in the order listed there. Note that they are processed in the order you pass them in and as soon as one is found,
-	*                             Script will return.
-	*                             IMPORTANT: The Array is changed while processing. So make a copy if you need it again before passing it.
-	*
-	* @context {mw.libs.settingsManager}
-	* @return {Object} $.Deferred; a jQuery deferred-object-queue.
-	*/
-	fetchGadgetSetting: function(prefName, prefSources) {
-		var $def = $.Deferred(), requires = [], options = {
-			'storage': {
-				requires: ['jquery.jStorage'],
-				fetch: function() {
-					var v = $.jStorage.get( prefName );
-					return (null === v || undefined === v) ? undefined : v;
-				}
-			},
-			'cookie': {
-				requires: ['jquery.cookie'],
-				fetch: function() {
-					var v = $.cookie( prefName );
-					try {
-						v = JSON.parse( v );
-					} catch(invalidJSON) {}
-					return (null === v || undefined === v) ? undefined : v;
-				}
-			},
-			'option': {
-				requires: ['mediawiki.user', 'user.options'],
-				fetch: function() {
-					var v = mw.user.options.get( mwPrefPrefix + prefName );
-					try {
-						v = JSON.parse( v );
-					} catch(invalidJSON) {}
-					return (null === v || undefined === v) ? undefined : v;
-				}
-			},
-			'window': {
-				requires: [],
-				fetch: function() {
-					return window[prefName];
-				}
-			}
-		};
-		if (!prefSources) prefSources = [];
-		if (!prefSources.length) prefSources = ['storage', 'cookie', 'option', 'window'];
-		
-		var _fetch = function(s) {
-				var so = options[s];
-				if (so) {
-					mw.loader.using( so.requires, function() {
-						var v = so.fetch();
-						if (undefined === v) {
-							_fetched();
-						} else {
-							$def.resolve( prefName, v );
-						}
-					} );
-				} else {
-					// Security guard: Don't load settings from unprotected pages
-					if (!/^(?:User\:|MediaWiki\:).+\.js$/.test( s )) _fetched();
-					sm.script( s ).fetchJSON( function(me, jsonData) {
-						if (jsonData) {
-							$def.resolve( prefName, jsonData );
-						} else {
-							_fetched();
-						}
-					}, $.proxy( $def.reject, $def ) );
-				}
-			},
-			_fetched = function() {
-				prefSources.shift();
-				if (prefSources.length) {
-					_fetch( prefSources[0] );
-				} else {
-					$def.resolve( prefName /* no pref found */ );
-				}
-			};
-			
-		$.each( prefSources, function(i, s) {
-			var so = options[s];
-			if (so) requires = requires.concat( options[s].requires );
-		} );
-		mw.loader.load( requires );
-			
-		// ensure async
-		setTimeout( function() {
-			_fetch(prefSources[0]);
-		}, 10 );
-		
-		return $def;
-	},
-	
 	/**
 	* Constructor-method. Returns an option-object you should perform the actions on.
 	*
@@ -781,7 +663,7 @@ var sm = {
 				return this;
 			},
 			disable: function(cb, errCb) {
-				sm.switchPref( optGadget, '', cb, errCb );
+				sm.switchPref( optGadget, this.isDefault() ? '' : null, cb, errCb );
 				return this;
 			}
 		};
@@ -792,5 +674,5 @@ var sm = {
 mw.libs.settingsManager = sm;
 
 // TODO add to gadget-def
-// mw.loader.load(['json', 'mediawiki.user', 'user.options', 'user.tokens']);
 }( jQuery, mediaWiki ));
+// </nowiki>
