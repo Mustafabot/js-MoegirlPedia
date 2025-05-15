@@ -1,61 +1,3 @@
-/**
- * SPDX-License-Identifier: CC-BY-SA-4.0
- * _addText: '{{Gadget Header|title1=Cat-a-lot.js|license=CC-BY-SA-4.0}}'
- *
- * Cat-a-lot
- *
- * @base {@link https://zh.wikipedia.org/wiki/MediaWiki:Gadget-Cat-a-lot.js}
- * @base {@link https://commons.wikimedia.org/wiki/MediaWiki:Gadget-Cat-a-lot.js}
- * @source {@link https://git.qiuwen.net.cn/InterfaceAdmin/QiuwenGadgets/src/branch/master/src/Cat-a-lot/modules/core.ts}
- * @author Magnus Manske, Ilmari Karonen, DieBuche, 安忆 <i@anyi.in>
- * @license CC-BY-SA-4.0 {@link https://www.qiuwenbaike.cn/wiki/H:CC-BY-SA-4.0}
- */
-
-/**
- * SPDX-License-Identifier: CC-BY-SA-4.0
- * _addText: '{{Gadget Header|title2=Cat-a-lot Messages|license2=CC-BY-SA-4.0}}'
- *
- * Cat-a-lot messages
- *
- * @base {@link https://commons.wikimedia.org/wiki/MediaWiki:Gadget-Cat-a-lot.js/zh-hans}
- * @base {@link https://commons.wikimedia.org/wiki/MediaWiki:Gadget-Cat-a-lot.js/zh-hant}
- * @source {@link https://git.qiuwen.net.cn/InterfaceAdmin/QiuwenGadgets/src/branch/master/src/Cat-a-lot/modules/messages.ts}
- * @license CC-BY-SA-4.0 {@link https://www.qiuwenbaike.cn/wiki/H:CC-BY-SA-4.0}
- */
-
-/**
- * SPDX-License-Identifier: CC-BY-SA-4.0
- * _addText: '{{Gadget Header|title3=jQuery checkboxShiftClick|license3=CC-BY-SA-4.0}}'
- *
- * jQuery checkboxShiftClick
- *
- * @description This will enable checkboxes to be checked or unchecked in a row by clicking one, holding shift and clicking another one
- * @base {@link https://commons.wikimedia.org/wiki/MediaWiki:Gadget-Cat-a-lot.js}
- * @source {@link https://git.qiuwen.net.cn/InterfaceAdmin/QiuwenGadgets/src/branch/master/src/Cat-a-lot/modules/extendJQueryPrototype.ts}
- * @author Krinkle <krinklemail@gmail.com>
- * @license CC-BY-SA-4.0 {@link https://www.qiuwenbaike.cn/wiki/H:CC-BY-SA-4.0}
- */
-
-/**
- * Hereby releasing jquery.checkboxShiftClick into CC BY-SA 3.0,
- * CC BY 4.0, CC-0 and for all intends and purpose in the public
- * domain, so as to not need this annotation.
- *
- * @source {@link https://commons.wikimedia.org/w/index.php?oldid=365723751}
-*/
-/**
- * +------------------------------------------------------------+
- * |            === WARNING: GLOBAL GADGET FILE ===             |
- * +------------------------------------------------------------+
- * |       All changes should be made in the repository,        |
- * |                otherwise they will be lost.                |
- * +------------------------------------------------------------+
- * |        Changes to this page may affect many users.         |
- * | Please discuss changes by opening an issue before editing. |
- * +------------------------------------------------------------+
- */
-/* <nowiki> */
-
 (() => {
 
 	"use strict";
@@ -224,7 +166,7 @@
 		}
 	  }
 	};
-	var VARIANTS = ["zh-hans", "zh-hant", "zh-cn","zh-hk","zh-tw"];
+	var VARIANTS = ["zh-hans", "zh-hant", "zh-cn", "zh-my", "zh-sg", "zh-hk", "zh-mo", "zh-tw"];
 	//! src/Cat-a-lot/modules/messages.ts
 	var {
 	  wgUserLanguage
@@ -268,17 +210,17 @@
 	  "cat-a-lot-return-to-page": "Return to page",
 	  "cat-a-lot-cat-not-found": "Category not found.",
 	  // Summaries:
-	  "cat-a-lot-summary-add": "[[U:没有羽翼的格雷塔/Cat-a-lot|Cat-a-lot]]: Adding [[Category:$1]]",
-	  "cat-a-lot-summary-copy": "[[U:没有羽翼的格雷塔/Cat-a-lot|Cat-a-lot]]: Copying from [[Category:$1]] to [[Category:$2]]",
-	  "cat-a-lot-summary-move": "[[U:没有羽翼的格雷塔/Cat-a-lot|Cat-a-lot]]: Moving from [[Category:$1]] to [[Category:$2]]",
-	  "cat-a-lot-summary-remove": "[[U:没有羽翼的格雷塔/Cat-a-lot|Cat-a-lot]]: Removing from [[Category:$1]]"
+	  "cat-a-lot-summary-add": "[[Help:Cat-a-lot|Cat-a-lot]]: Adding [[Category:$1]]",
+	  "cat-a-lot-summary-copy": "[[Help:Cat-a-lot|Cat-a-lot]]: Copying from [[Category:$1]] to [[Category:$2]]",
+	  "cat-a-lot-summary-move": "[[Help:Cat-a-lot|Cat-a-lot]]: Moving from [[Category:$1]] to [[Category:$2]]",
+	  "cat-a-lot-summary-remove": "[[Help:Cat-a-lot|Cat-a-lot]]: Removing from [[Category:$1]]"
 	};
 	var setMessages = () => {
 	  /*! Cat-a-lot messages | CC-BY-SA-4.0 <https://qwbk.cc/H:CC-BY-SA-4.0> */
 	  if (wgUserLanguage === "en") {
 		return;
 	  }
-	  if (["zh-hant", "zh-hk", "zh-tw"].includes(wgUserLanguage)) {
+	  if (["zh-hant", "zh-hk", "zh-mo", "zh-tw"].includes(wgUserLanguage)) {
 		mw.messages.set({
 		  // as in 17 files selected
 		  "cat-a-lot-files-selected": "$1個文件已選擇",
@@ -318,10 +260,10 @@
 		  "cat-a-lot-return-to-page": "返回到頁面",
 		  "cat-a-lot-cat-not-found": "找不到分類。",
 		  // Summaries
-		  "cat-a-lot-summary-add": "[[U:没有羽翼的格雷塔/Cat-a-lot|Cat-a-lot]]：加入分類[[Category:$1]]",
-		  "cat-a-lot-summary-copy": "[[U:没有羽翼的格雷塔/Cat-a-lot|Cat-a-lot]]：分類間複製：從[[Category:$1]]到[[Category:$2]]",
-		  "cat-a-lot-summary-move": "[[U:没有羽翼的格雷塔/Cat-a-lot|Cat-a-lot]]：分類間移動：從[[Category:$1]]到[[Category:$2]]",
-		  "cat-a-lot-summary-remove": "[[U:没有羽翼的格雷塔/Cat-a-lot|Cat-a-lot]]：從分類移除：[[Category:$1]]"
+		  "cat-a-lot-summary-add": "[[Help:Cat-a-lot|Cat-a-lot]]：加入分類[[Category:$1]]",
+		  "cat-a-lot-summary-copy": "[[Help:Cat-a-lot|Cat-a-lot]]：分類間複製：從[[Category:$1]]到[[Category:$2]]",
+		  "cat-a-lot-summary-move": "[[Help:Cat-a-lot|Cat-a-lot]]：分類間移動：從[[Category:$1]]到[[Category:$2]]",
+		  "cat-a-lot-summary-remove": "[[Help:Cat-a-lot|Cat-a-lot]]：從分類移除：[[Category:$1]]"
 		});
 	  } else {
 		mw.messages.set({
@@ -363,10 +305,10 @@
 		  "cat-a-lot-return-to-page": "返回到页面",
 		  "cat-a-lot-cat-not-found": "找不到分类。",
 		  // Summaries
-		  "cat-a-lot-summary-add": "[[U:没有羽翼的格雷塔/Cat-a-lot|Cat-a-lot]]：加入分类[[Category:$1]]",
-		  "cat-a-lot-summary-copy": "[[U:没有羽翼的格雷塔/Cat-a-lot|Cat-a-lot]]：分类间复制：从[[Category:$1]]到[[Category:$2]]",
-		  "cat-a-lot-summary-move": "[[U:没有羽翼的格雷塔/Cat-a-lot|Cat-a-lot]]：分类间移动：从[[Category:$1]]到[[Category:$2]]",
-		  "cat-a-lot-summary-remove": "[[U:没有羽翼的格雷塔/Cat-a-lot|Cat-a-lot]]：从分类移除：[[Category:$1]]"
+		  "cat-a-lot-summary-add": "[[Help:Cat-a-lot|Cat-a-lot]]：加入分类[[Category:$1]]",
+		  "cat-a-lot-summary-copy": "[[Help:Cat-a-lot|Cat-a-lot]]：分类间复制：从[[Category:$1]]到[[Category:$2]]",
+		  "cat-a-lot-summary-move": "[[Help:Cat-a-lot|Cat-a-lot]]：分类间移动：从[[Category:$1]]到[[Category:$2]]",
+		  "cat-a-lot-summary-remove": "[[Help:Cat-a-lot|Cat-a-lot]]：从分类移除：[[Category:$1]]"
 		});
 	  }
 	};
@@ -894,7 +836,7 @@
 		  const markedLabels = this.getMarkedLabels();
 		  if (!markedLabels.length) {
 			void mw.notify(CAL.msg("none-selected"), {
-			  tag: mw.config.get( 'wgUserGroups' ).includes('bot') ? 'Bot' : 'Automation tool',
+			  tag: "catALot"
 			});
 			return;
 		  }
