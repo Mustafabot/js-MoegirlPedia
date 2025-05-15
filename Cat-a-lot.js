@@ -214,12 +214,18 @@ that concept on your wiki, set it to null. Use blanks, not underscores. */
 
 		reCat = new RegExp( '^\\s*' + CAL.localizedRegex( 14, 'Category' ) + ':', '' );
 
-		$searchInput.on( 'keypress', function ( e ) {
-			if ( e.which === 13 ) {
+		$searchInput.on( 'keydown', function ( e ) {  
+			if ( e.key === 'Enter' ) {  
 				CAL.updateCats( $.trim( $( this ).val().replace( /[\u200E\u200F\u202A-\u202E]/g, '' ) ) );
 				mw.cookie.set( 'catAlot', CAL.currentCategory );
+				this.blur(); 
 			}
 		} )
+			.on( 'blur', function() { 
+				if( this.value ) {
+					CAL.updateCats( $.trim( $( this ).val() ) );
+				}
+			})
 			.on( 'input keyup', function () {
 				var oldVal = this.value,
 					newVal = oldVal.replace( reCat, '' );
@@ -970,8 +976,8 @@ that concept on your wiki, set it to null. Use blanks, not underscores. */
 			doCall,
 			handleError = function ( jqXHR, textStatus, errorThrown ) {
 				mw.log( 'Error: ', jqXHR, textStatus, errorThrown );
-				if ( i < 4 ) {
-					window.setTimeout( doCall, 300 );
+				if ( i < 30 ) {
+					window.setTimeout( doCall, 1000 );
 					i++;
 				} else if ( params.title ) {
 					self.connectionError.push( params.title );
