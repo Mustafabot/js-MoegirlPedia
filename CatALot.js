@@ -461,7 +461,7 @@ curly:0, camelcase:0, no-useless-escape:0, no-alert:0 */ // extends: wikimedia
 		getTitleFromLink: function ( $a ) {
 			try {
 				return decodeURIComponent( $a.attr( 'href' ) )
-					.match( /(?:wiki\/)?([^#]+)/ )[ 1 ].replace( /_/g, ' ' );
+					.match( /(?:\/wiki\/)?([^\/#]+)/ )[ 1 ].replace( /_/g, ' ' );
 			} catch ( ex ) {
 				return '';
 			}
