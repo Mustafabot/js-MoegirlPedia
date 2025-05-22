@@ -88,7 +88,7 @@ curly:0, camelcase:0, no-useless-escape:0, no-alert:0 */ // extends: wikimedia
 		'cat-a-lot-summary-move': 'Moving from [[Category:$1]] to [[Category:$2]]',
 		'cat-a-lot-summary-remove': 'Removing from [[Category:$1]]',
 		'cat-a-lot-prefix-summary': '',
-		'cat-a-lot-using-summary': ' using [[User:没有羽翼的格雷塔/js#Cat-a-lot|Cat-a-lot]]'
+		'cat-a-lot-using-summary': ' using [[zhmoe:User:没有羽翼的格雷塔/js#Cat-a-lot|Cat-a-lot]]'
 	};
 	mw.messages.set( msgs );
 	
