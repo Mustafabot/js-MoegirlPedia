@@ -479,7 +479,8 @@ var sm = {
 					text: 'object' === typeof content ? $.toJSON(content) : content,
 					summary: summary,
 					watchlist: 'nochange',
-					recreate: 1
+					recreate: 1,
+					tags: 'Automation tool'
 				};
 				
 			if (minor) edit.minor = 1;
