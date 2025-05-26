@@ -138,7 +138,7 @@ window.DisamAssist = jQuery.extend( true, {
 	}
 }, window.DisamAssist || {} );
 
-mw.loader.load('//testingcf.jsdelivr.net/gh/Mustafabot/js-MoegiriPedia/DisamAssist-core.js');
+mw.loader.load('//cdn.jsdelivr.net/gh/Mustafabot/js-MoegiriPedia/DisamAssist-core.min.js');
 //</syntaxhighlight>
 
 //</source>
