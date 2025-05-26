@@ -1100,7 +1100,8 @@
 			summary: summary,
 			watchlist: cfg.watch,
 			minor: minorEdit,
-			bot: botEdit
+			bot: botEdit,
+			tags: 'Automation tool'
 		} ).done( function() {
 			dfd.resolve();
 		} ).fail( function( code, data ) {
