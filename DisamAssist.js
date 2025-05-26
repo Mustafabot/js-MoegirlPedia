@@ -85,7 +85,7 @@ window.DisamAssist = jQuery.extend( true, {
 		/*
 		 *提交编辑的最短时间间隔，以秒为单位。使用负值或0则不会进行冷却。拥有“bot”权限的用户不会受到冷却时间的影响。
 		 */
-		editCooldown: 20,
+		editCooldown: 7,
 		
 		/*
 		 * 指定通过DisamAssist作出的编辑如何影响监视列表。可能的值："watch"（添加至监视列表）, "unwatch"（从监视列表中移除）,"preferences"（与参数设置中的设定一致）, "nochange"（保持原来的监视状态）
@@ -138,6 +138,7 @@ window.DisamAssist = jQuery.extend( true, {
 	}
 }, window.DisamAssist || {} );
 
-mw.loader.load( '//testingcf.jsdelivr.net/gh/Mustafabot/js-MoegiriPedia/DisamAssist-core.js' );
+mw.loader.load('//testingcf.jsdelivr.net/gh/Mustafabot/js-MoegiriPedia/DisamAssist-core.js');
+//</syntaxhighlight>
 
 //</source>

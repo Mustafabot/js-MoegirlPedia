@@ -838,7 +838,7 @@
 	 * Check whether this is a disambiguation page
 	 */
 	var isDisam = function() {
-		var categories = mw.config.get( 'wgCategories', [] );
+		var categories = $('#catlinks ul li:not(.noprint)>a').map((_, ele) => ele.textContent).get();
 		for ( var ii = 0; ii < categories.length; ii++ ) {
 			if ( $.inArray( categories[ii], cfg.disamCategories ) !== -1 ) {
 				return true;
