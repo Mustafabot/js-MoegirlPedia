@@ -138,12 +138,6 @@ curly:0, camelcase:0, no-useless-escape:0, no-alert:0 */ // extends: wikimedia
 				} );
 			}
 	
-			// TODO: better extern project support for possible change-tag? (needs currently change after init)
-			if ( project === 'commonswiki' ) { mw.messages.set( { 'cat-a-lot-using-summary': '' } ); } else { // Reset
-				this.changeTag = userGrp.includes('bot') ? 'Bot' : 'Automation tool';
-				this.settings.redir_category = '';
-			}
-	
 			this._initSettings();
 			$body = $( document.body );
 			$container = $( '<div>' )
