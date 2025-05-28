@@ -16,9 +16,8 @@
         apiUrl: mw.config.get('wgServer') + mw.config.get('wgScriptPath') + '/api.php',
         pageTitle: 'MassGlobalUsageChecker',
         pageAliases: ['批量检测全域文件用途'],
-        batchSize: 10, // 每批处理的文件数量
         maxResults: 100, // 每个文件最多显示的使用数量
-        version: '1.1.0' // 版本号
+        version: '1.2.0' // 版本号 - 更新为串行请求
     };
 
     // 工具初始化
@@ -42,7 +41,7 @@
     // 添加到工具箱
     GlobalUsageChecker.addToToolbox = function() {
         $(function() {
-            var toolboxLink = $('<li id="t-globalusagechecker"><a href="/wiki/Special:' + 
+            var toolboxLink = $('<li id="t-globalusagechecker"><a href="/Special:' + 
                 GlobalUsageChecker.config.pageTitle + '">全域文件用途检测</a></li>');
             $('#p-tb ul').append(toolboxLink);
         });
@@ -60,7 +59,7 @@
             .append('<h2>全域文件用途检测工具 <small>v' + GlobalUsageChecker.config.version + '</small></h2>')
             .append('<p>此工具可以批量检测文件在萌娘百科各站中的使用情况。请在下方输入文件名（每行一个，可以包含或不包含File:前缀）</p>')
             .append('<div class="mw-ui-message mw-ui-message-notice">' +
-                '<p><strong>提示：</strong>此工具使用MediaWiki GlobalUsage扩展的API，可以检测文件在不同wiki上的使用情况。</p>' +
+                '<p><strong>提示：</strong>不建议一次检测过多文件，以免被WAF！</p>' +
                 '</div>')
             .append('<textarea id="file-list" rows="10" style="width: 100%;" placeholder="例如：\nExample.jpg\nFile:Logo.png\n..."></textarea>')
             .append('<div class="options-panel" style="margin: 10px 0;">' +
@@ -106,56 +105,51 @@
         var processedFiles = 0;
         var results = {};
 
-        // 批量处理文件
-        function processBatch(batch) {
-            if (batch.length === 0) {
-                // 所有批次处理完毕，显示结果
+        // 串行处理文件
+        function processNextFile() {
+            if (fileList.length === 0) {
+                // 所有文件处理完毕，显示结果
                 GlobalUsageChecker.displayResults(results);
                 return;
             }
 
-            var promises = [];
+            // 获取下一个文件
+            var filename = fileList.shift();
+            
+            // 确保文件名格式正确
+            if (!filename.match(/^File:/i)) {
+                filename = 'File:' + filename;
+            }
 
-            // 为每个文件创建一个请求
-            batch.forEach(function(filename) {
-                // 确保文件名格式正确
-                if (!filename.match(/^File:/i)) {
-                    filename = 'File:' + filename;
-                }
+            // 更新状态信息
+            $('.progress-info').text('正在检测: ' + (processedFiles + 1) + '/' + totalFiles + ' (' + filename + ')');
 
-                var promise = GlobalUsageChecker.checkFileUsage(filename, filterLocal, resultLimit)
-                    .done(function(data) {
-                        results[filename] = data;
-                        processedFiles++;
-                        
-                        // 更新进度
-                        var progress = (processedFiles / totalFiles) * 100;
-                        $('.progress').css('width', progress + '%');
-                        $('.progress-info').text('正在检测: ' + processedFiles + '/' + totalFiles);
-                    })
-                    .fail(function() {
-                        results[filename] = {error: '检测失败'};
-                        processedFiles++;
-                        
-                        // 更新进度
-                        var progress = (processedFiles / totalFiles) * 100;
-                        $('.progress').css('width', progress + '%');
-                        $('.progress-info').text('正在检测: ' + processedFiles + '/' + totalFiles);
-                    });
-
-                promises.push(promise);
-            });
-
-            // 当前批次完成后处理下一批次
-            $.when.apply($, promises).always(function() {
-                var nextBatch = fileList.splice(0, GlobalUsageChecker.config.batchSize);
-                processBatch(nextBatch);
-            });
+            // 处理单个文件
+            GlobalUsageChecker.checkFileUsage(filename, filterLocal, resultLimit)
+                .done(function(data) {
+                    results[filename] = data;
+                    processedFiles++;
+                    
+                    // 更新进度
+                    var progress = (processedFiles / totalFiles) * 100;
+                    $('.progress').css('width', progress + '%');
+                })
+                .fail(function() {
+                    results[filename] = {error: '检测失败'};
+                    processedFiles++;
+                    
+                    // 更新进度
+                    var progress = (processedFiles / totalFiles) * 100;
+                    $('.progress').css('width', progress + '%');
+                })
+                .always(function() {
+                    // 处理下一个文件
+                    setTimeout(processNextFile,1000); // 添加小延迟，避免请求过于频繁
+                });
         }
 
-        // 开始处理第一批
-        var firstBatch = fileList.splice(0, GlobalUsageChecker.config.batchSize);
-        processBatch(firstBatch);
+        // 开始处理第一个文件
+        processNextFile();
     };
 
     // 检查单个文件的使用情况
