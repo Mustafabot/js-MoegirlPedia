@@ -220,7 +220,7 @@
             var $row = $('<tr>');
             
             // 文件名列 - 添加链接到文件页面
-            var fileLink = mw.config.get('wgServer') + mw.config.get('wgScriptPath') + '/wiki/' + filename;
+            var fileLink = mw.config.get('wgServer') + mw.config.get('wgScriptPath') + '/' + filename;
             $row.append('<td><a href="' + fileLink + '" target="_blank">' + filename + '</a></td>');
             
             // 如果有错误
