@@ -18,7 +18,7 @@
 
 // Set jsHint-options.
 /*jshint forin:true, noarg:true, noempty:true, eqeqeq:true, bitwise:true, strict:true, undef:true, curly:false, browser:true*/
-mw.loader.load(['jquery.json', 'mediawiki.user', 'user.options']);
+mw.loader.load(['//cdnjs.cloudflare.com/ajax/libs/json2/20160511/json2.min.js', 'mediawiki.user', 'user.options']);
 ( function ( $, mw, undefined ) {
 "use strict";
 
@@ -236,7 +236,7 @@ var sm = {
 				};
 			},
 			process: function() {
-				var JSONVal = $.toJSON( specs.value ),
+				var JSONVal = JSON.stringify( specs.value ),
 					sig = specs.encloseSignature,
 					tsa = specs.triggerSaveAt,
 					opn = specs.optionName,
@@ -476,7 +476,7 @@ var sm = {
 				edit = {
 					action: 'edit',
 					title: source,
-					text: 'object' === typeof content ? $.toJSON(content) : content,
+					text: 'object' === typeof content ? JSON.stringify(content) : content,
 					summary: summary,
 					watchlist: 'nochange',
 					recreate: 1,
@@ -507,7 +507,7 @@ var sm = {
 			},
 			parseJSON: function() {
 				// jquery.json - plugin required
-				return ('string' === typeof content && '' !== content) ? $.secureEvalJSON( content ) : '';
+				return ('string' === typeof content && '' !== content) ? JSON.parse( content ) : '';
 			},
 			// Supplied callback called with a string as second argument
 			fetchText: function(cb, errCb) {
