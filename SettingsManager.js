@@ -18,7 +18,7 @@
 
 // Set jsHint-options.
 /*jshint forin:true, noarg:true, noempty:true, eqeqeq:true, bitwise:true, strict:true, undef:true, curly:false, browser:true*/
-mw.loader.load(['//cdnjs.cloudflare.com/ajax/libs/json2/20160511/json2.min.js', 'mediawiki.user', 'user.options']);
+mw.loader.load(['//cdnjs.cloudflare.com/ajax/libs/json2/20160511/json2.min.js', 'mediawiki.user']);
 ( function ( $, mw, undefined ) {
 "use strict";
 

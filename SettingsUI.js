@@ -140,9 +140,8 @@
 				$progress = new $.Deferred();
 				
 			mw.loader.using([
-				'jquery.ui', 
-				'mediawiki.user',
-				'ext.gadget.libJQuery'
+				'jquery.ui',
+				'mediawiki.user'
 			], function() {
 				sui._show($progress);
 			});
