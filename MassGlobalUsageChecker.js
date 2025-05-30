@@ -16,8 +16,8 @@
         apiUrl: mw.config.get('wgServer') + mw.config.get('wgScriptPath') + '/api.php',
         pageTitle: 'MassGlobalUsageChecker',
         pageAliases: ['批量检测全域文件用途'],
-        batchSize: mw.config.get('wgUserRights').includes('apihighlimits') ? 500 : 50, // 根据apihighlimits权限确定批处理大小
-        maxResults: mw.config.get('wgUserRights').includes('apihighlimits') ? 5000 : 500, // 每个文件最多显示的使用数量
+        batchSize: (mw.config.get('wgUserGroups') || []).some(g => ['sysop', 'bot' ].includes(g)) ? 500 : 50, // 根据用户组确定批处理大小
+        maxResults: (mw.config.get('wgUserGroups') || []).some(g => ['sysop', 'bot'].includes(g)) ? 5000 : 500, // 根据用户组确定最大结果数量
         version: '1.3.0' // 版本号 - 更新为批量请求
     };
 
