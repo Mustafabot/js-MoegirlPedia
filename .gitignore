@@ -12,3 +12,4 @@ ext.categoryDownloader.js
 SpecialCategoryDownloader.js
 memory-bank/issue_template.md
 debug_tools_config.json
+.cursor/rules/javascript.mdc
