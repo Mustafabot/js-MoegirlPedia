@@ -1,9 +1,6 @@
-.vscode/settings.json
-memory-bank/activeContext.md
-memory-bank/decisionLog.md
-memory-bank/productContext.md
-memory-bank/progress.md
-memory-bank/systemPatterns.md
+.vscode
+memory-bank
+.cursor
 MediaWikiDownloader-Architecture.md
 CategoryDownloaderConfig.js
 CategoryDownloaderToolbar.js
@@ -12,4 +9,3 @@ ext.categoryDownloader.js
 SpecialCategoryDownloader.js
 memory-bank/issue_template.md
 debug_tools_config.json
-.cursor/rules/javascript.mdc
