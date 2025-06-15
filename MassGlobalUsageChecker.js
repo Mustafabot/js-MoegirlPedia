@@ -185,17 +185,19 @@
         
         return $.ajax({
             url: GlobalUsageChecker.config.apiUrl,
+            method: 'POST', // 新增POST方法
             data: {
                 action: 'query',
                 prop: 'globalusage',
                 titles: titlesParam,
                 gufilterlocal: filterLocal,
                 gulimit: limit,
-                guprop: 'url|pageid|namespace',  // 获取更多属性
+                guprop: 'url|pageid|namespace',
                 format: 'json'
             },
             dataType: 'json',
-            cache: false
+            cache: false,
+            traditional: true // 添加传统序列化方式
         });
     };
 
