@@ -3,7 +3,7 @@
 /*
  * DisamAssist: a tool for repairing links from articles to disambiguation pages.
  */
-'use strict';
+
 ( function( mw, $, undefined ) {
 	var cfg = {};
 	var txt = {};
@@ -916,65 +916,24 @@
 	var getBacklinks = function( page ) {
 		var dfd = new $.Deferred();
 		var api = new mw.Api();
-		
-		// 递归函数处理分页
-		var fetchBacklinks = function( page, continueParam ) {
-			var params = {
-				'action': 'query',
-				'list': 'backlinks',
-				'bltitle': page,
-				'blredirect': true,
-				'bllimit': cfg.backlinkLimit,
-				'blnamespace': cfg.targetNamespaces.join( '|' )
-			};
-			
-			// 如果有continue参数，则添加到请求中
-			if ( continueParam ) {
-				params.blcontinue = continueParam;
-			}
-			
-			return api.get( params ).then( function( data ) {
-				// 收集当前页的反向链接
-				var backlinks = [];
-				var linkTitles = [];
-				
-				$.each( data.query.backlinks, function() {
-					backlinks.push( this.title );
-					if ( this.redirlinks ) {
-						linkTitles.push( this.title );
-						$.each( this.redirlinks, function() {
-							backlinks.push( this.title );
-						} );
-					}
-				} );
-				
-				// 检查是否有更多结果
-				if ( data.continue && data.continue.blcontinue ) {
-					// 递归获取下一页结果
-					return fetchBacklinks( page, data.continue.blcontinue ).then( function( nextResult ) {
-						// 合并结果
-						return {
-							backlinks: backlinks.concat( nextResult.backlinks ),
-							linkTitles: linkTitles.concat( nextResult.linkTitles )
-						};
-					} );
-				} else {
-					// 没有更多结果，返回当前结果
-					return $.Deferred().resolve( {
-						backlinks: backlinks,
-						linkTitles: linkTitles
-					} );
-				}
+		api.get( {
+			'action': 'query',
+			'list': 'search',
+			'srsearch': 'insource:\'' + page + '\' linksto:\'' + page + '\'',
+			'srlimit': cfg.backlinkLimit,
+			'srnamespace': cfg.targetNamespaces.join( '|' )
+		} ).done( function( data ) {
+			// There might be duplicate entries in some corner cases. We don't care,
+			// since we are going to check later, anyway
+			var backlinks = [];
+			var linkTitles = [getCanonicalTitle( page )];
+			$.each( data.query.search, function() {
+				backlinks.push( this.title );
 			} );
-		};
-		
-		// 开始获取反向链接
-		fetchBacklinks( page ).then( function( result ) {
-			dfd.resolve( result.backlinks, result.linkTitles );
+			dfd.resolve( backlinks, linkTitles );
 		} ).fail( function( code, data ) {
 			dfd.reject( txt.getBacklinksError.replace( '$1', code ) );
 		} );
-		
 		return dfd.promise();
 	};
 	
