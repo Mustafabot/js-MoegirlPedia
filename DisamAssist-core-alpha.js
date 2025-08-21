@@ -919,7 +919,7 @@
 		api.get( {
 			'action': 'query',
 			'list': 'search',
-			'srsearch': 'insource:\'' + page + '\' linksto:\'' + page + '\'',
+			'srsearch': 'insource:\“' + page + '\” linksto:\“' + page + '\”',
 			'srlimit': cfg.backlinkLimit,
 			'srnamespace': cfg.targetNamespaces.join( '|' )
 		} ).done( function( data ) {
