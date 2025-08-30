@@ -33,64 +33,63 @@ curly:0, camelcase:0, no-useless-escape:0, no-alert:0 */ // extends: wikimedia
 	// Preferences
 	// new: added 2012-09-19. Please translate.
 	// Use user language for i18n
-		'cat-a-lot-watchlistpref': 'Watchlist preference concerning files edited with Cat-a-lot',
-		'cat-a-lot-watch_pref': 'According to your general preferences',
-		'cat-a-lot-watch_nochange': 'Do not change watchstatus',
-		'cat-a-lot-watch_watch': 'Watch pages edited with Cat-a-lot',
-		'cat-a-lot-watch_unwatch': 'Remove pages while editing with Cat-a-lot from your watchlist',
-		'cat-a-lot-minorpref': 'Mark edits as minor (if you generally mark your edits as minor, this won’t change anything)',
-		'cat-a-lot-editpagespref': 'Allow categorising pages (including categories) that are not files',
-		'cat-a-lot-docleanuppref': 'Remove {{Check categories}} and other minor cleanup',
-		'cat-a-lot-uncatpref': 'Remove {{Uncategorized}}',
-		'cat-a-lot-subcatcountpref': 'Sub-categories to show at most',
-		'cat-a-lot-config-settings': 'Preferences',
-		'cat-a-lot-buttonpref': 'Use buttons instead of text-links',
-		'cat-a-lot-comment-label': 'Custom edit comment',
+		'cat-a-lot-watchlistpref': '监视列表偏好设置',
+		'cat-a-lot-watch_pref': '跟随参数设置',
+		'cat-a-lot-watch_nochange': '不改变监视状态',
+		'cat-a-lot-watch_watch': '监视Cat-a-lot编辑后的页面',
+		'cat-a-lot-watch_unwatch': '取消监视Cat-a-lot编辑后的页面',
+		'cat-a-lot-minorpref': '标记为小编辑（如果您默认将编辑标记为小编辑，将不会有变化）',
+		'cat-a-lot-editpagespref': '允许对页面（包括分类）进行分类',
+		'cat-a-lot-docleanuppref': '移除{{Check categories}}和其他次要清理',
+		'cat-a-lot-uncatpref': '移除{{Uncategorized}}',
+		'cat-a-lot-subcatcountpref': '最多显示的子分类',
+		'cat-a-lot-config-settings': '偏好设置',
+		'cat-a-lot-buttonpref': '使用按钮而不是文本链接',
+		'cat-a-lot-comment-label': '自定义编辑注释',
 	
 		// Progress
-		'cat-a-lot-loading': 'Loading…',
-		'cat-a-lot-editing': 'Editing page',
+		'cat-a-lot-loading': '加载中...',
+		'cat-a-lot-editing': '正在编辑页面',
 		'cat-a-lot-of': 'of ',
-		'cat-a-lot-skipped-already': 'The following {{PLURAL:$1|1=page was|$1 pages were}} skipped, because the page was already in the category:',
-		'cat-a-lot-skipped-not-found': 'The following {{PLURAL:$1|1=page was|$1 pages were}} skipped, because the old category could not be found:',
-		'cat-a-lot-skipped-server': 'The following {{PLURAL:$1|1=page|$1 pages}} couldn’t be changed, since there were problems connecting to the server:',
-		'cat-a-lot-all-done': 'All pages are processed.',
-		'cat-a-lot-done': 'Done!', // mw.msg("Feedback-close")
-		'cat-a-lot-added-cat': 'Added category $1',
-		'cat-a-lot-copied-cat': 'Copied to category $1',
-		'cat-a-lot-moved-cat': 'Moved to category $1',
-		'cat-a-lot-removed-cat': 'Removed from category $1',
+		'cat-a-lot-skipped-already': '以下 {{PLURAL:$1|1=页面已|$1 页面已}} 被跳过，因为页面已在分类中：',
+		'cat-a-lot-skipped-not-found': '以下 {{PLURAL:$1|1=页面已|$1 页面已}} 被跳过，因为旧分类无法找到：',
+		'cat-a-lot-skipped-server': '以下 {{PLURAL:$1|1=页面|$1 页面}} 无法更改，因为连接服务器时出现问题：',
+		'cat-a-lot-all-done': '所有页面已处理。',
+		'cat-a-lot-done': '完成！', // mw.msg("Feedback-close")
+		'cat-a-lot-added-cat': '添加分类 $1',
+		'cat-a-lot-copied-cat': '复制到分类 $1',
+		'cat-a-lot-moved-cat': '移动到分类 $1',
+		'cat-a-lot-removed-cat': '从分类 $1 移除',
 		// 'cat-a-lot-return-to-page': 'Return to page',
 		// 'cat-a-lot-cat-not-found': 'Category not found.',
 	
 		// as in 17 files selected
-		'cat-a-lot-files-selected': '{{PLURAL:$1|1=One file|$1 files}} selected.',
-		'cat-a-lot-pe_file': '$1 {{PLURAL:$1|page|pages}} of $2 affected',
-		'cat-a-lot-parent-cat': 'Has parent-category: ',
-		'cat-a-lot-sub-cat': 'Has sub-category: ',
+		'cat-a-lot-files-selected': '{{PLURAL:$1|1=1 页面|$1 页面}} 已选择。',
+		'cat-a-lot-pe_file': '$1 {{PLURAL:$1|页面|页面}} 受影响，共 $2 页面',
+		'cat-a-lot-parent-cat': '父分类：',
+		'cat-a-lot-sub-cat': '子分类：',
 	
 		// Actions
-		'cat-a-lot-copy': 'Copy',
-		'cat-a-lot-move': 'Move',
-		'cat-a-lot-add': 'Add',
+		'cat-a-lot-copy': '复制',
+		'cat-a-lot-move': '移动',
+		'cat-a-lot-add': '添加',
 		// 'cat-a-lot-remove-from-cat': 'Remove from this category',
-		'cat-a-lot-overcat': 'Check over-categorization',
-		'cat-a-lot-enter-name': 'Enter category name',
-		'cat-a-lot-select': 'Select',
-		'cat-a-lot-all': 'all',
-		'cat-a-lot-none': 'none',
+		'cat-a-lot-overcat': '检查重分类',
+		'cat-a-lot-enter-name': '输入分类名称',
+		'cat-a-lot-select': '选择',
+		'cat-a-lot-all': '全部',
+		'cat-a-lot-none': '无',
 		// 'cat-a-lot-none-selected': 'No files selected!', 'Ooui-selectfile-placeholder'
 	
 		// Summaries (project language):
-		'cat-a-lot-pref-save-summary': 'Updating user preferences',
-		'cat-a-lot-summary-add': 'Adding [[Category:$1]]',
-		'cat-a-lot-summary-copy': 'Copying from [[Category:$1]] to [[Category:$2]]',
-		'cat-a-lot-summary-move': 'Moving from [[Category:$1]] to [[Category:$2]]',
-		'cat-a-lot-summary-remove': 'Removing from [[Category:$1]]',
-		'cat-a-lot-prefix-summary': '',
-		'cat-a-lot-using-summary': ' using [[zhmoe:User:没有羽翼的格雷塔/js#Cat-a-lot|Cat-a-lot]]'
+		'cat-a-lot-pref-save-summary': '更新用户偏好设置',
+		'cat-a-lot-summary-add': '+[[Category:$1]]',
+		'cat-a-lot-summary-copy': '[[Category:$1]]+[[Category:$2]]',
+		'cat-a-lot-summary-move': '[[Category:$1]]→[[Category:$2]]',
+		'cat-a-lot-summary-remove': '-[[Category:$1]]',
+		'cat-a-lot-prefix-summary': '[[zhmoe:User:没有羽翼的格雷塔/js#Cat-a-lot|Cat-a-lot]]：',
+		'cat-a-lot-using-summary': ''
 	};
-	mw.messages.set( msgs );
 	
 	function msg( /* params */ ) {
 		var args = Array.prototype.slice.call( arguments, 0 );
@@ -136,12 +135,6 @@ curly:0, camelcase:0, no-useless-escape:0, no-alert:0 */ // extends: wikimedia
 				mw.messages.set( {
 					'cat-a-lot-pref-save-summary': msgs[ 'cat-a-lot-prefix-summary' ] + msgs[ 'cat-a-lot-pref-save-summary' ] + msgs[ 'cat-a-lot-using-summary' ]
 				} );
-			}
-	
-			// TODO: better extern project support for possible change-tag? (needs currently change after init)
-			if ( project === 'commonswiki' ) { mw.messages.set( { 'cat-a-lot-using-summary': '' } ); } else { // Reset
-				this.changeTag = userGrp.includes('bot') ? 'Bot' : 'Automation tool';
-				this.settings.redir_category = '';
 			}
 	
 			this._initSettings();
