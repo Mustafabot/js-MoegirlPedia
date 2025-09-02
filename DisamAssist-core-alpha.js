@@ -1,3 +1,4 @@
+
 //<syntaxhighlight lang="javascript">
 
 /*
@@ -133,7 +134,7 @@
 				return txt.pending;
 			} else if ( editCount !== 0 ) {
 				return txt.editInProgress;
-			}
+	}
 		});
 	};
 	
@@ -244,6 +245,7 @@
 		}
 		if ( links.length === 0 ) {
 			var targetPage = getTargetPage();
+			fetchRedirects([targetPage]).done(function(redirects) {
 			getBacklinks( targetPage ).done( function( backlinks, pageTitles ) {
 				var pending = {};
 				$.each( pendingSaves, function() {
@@ -268,6 +270,7 @@
 					doPage();
 				}
 			} ).fail( error );
+		}).fail(error);
 		} else {
 			currentPageTitle = links.shift();
 			displayedPages[currentPageTitle] = true;
@@ -916,24 +919,52 @@
 	var getBacklinks = function( page ) {
 		var dfd = new $.Deferred();
 		var api = new mw.Api();
-		api.get( {
-			'action': 'query',
-			'list': 'search',
-			'srsearch': 'insource:\"' + page + '\" linksto:\"' + page + '\"',
-			'srlimit': cfg.backlinkLimit,
-			'srnamespace': cfg.targetNamespaces.join( '|' )
-		} ).done( function( data ) {
-			// There might be duplicate entries in some corner cases. We don't care,
-			// since we are going to check later, anyway
-			var backlinks = [];
-			var linkTitles = [getCanonicalTitle( page )];
-			$.each( data.query.search, function() {
-				backlinks.push( this.title );
-			} );
-			dfd.resolve( backlinks, linkTitles );
-		} ).fail( function( code, data ) {
-			dfd.reject( txt.getBacklinksError.replace( '$1', code ) );
-		} );
+		// 构建查询页面列表，包含目标页和所有重定向页
+		var pagesToQuery = [page];
+		if (redirects && Array.isArray(redirects)) {
+			redirects.forEach(function(redirect) {
+				if (redirect.to === page && pagesToQuery.indexOf(redirect.from) === -1) {
+					pagesToQuery.push(redirect.from);
+				}
+			});
+		}
+		
+		// 逐个查询每个页面的链入链接
+		var allBacklinks = [];
+		var allLinkTitles = [getCanonicalTitle(page)];
+		
+		// 为每个页面创建一个Promise
+		var promises = pagesToQuery.map(function(pageToQuery) {
+			return api.get({
+				'action': 'query',
+				'list': 'search',
+				'srsearch': 'insource:"' + pageToQuery + '" linksto:"' + pageToQuery + '"',
+				'srlimit': cfg.backlinkLimit,
+				'srnamespace': cfg.targetNamespaces.join('|')
+			}).then(function(data) {
+				// 处理查询结果
+				$.each(data.query.search, function() {
+					// 避免重复添加
+					if (allBacklinks.indexOf(this.title) === -1) {
+						allBacklinks.push(this.title);
+					}
+				});
+				
+				// 添加链接标题
+				var canonicalTitle = getCanonicalTitle(pageToQuery);
+				if (allLinkTitles.indexOf(canonicalTitle) === -1) {
+					allLinkTitles.push(canonicalTitle);
+				}
+			});
+		});
+		
+		// 等待所有查询完成
+		Promise.all(promises).then(function() {
+			dfd.resolve(allBacklinks, allLinkTitles);
+		}).catch(function(code, data) {
+			dfd.reject(txt.getBacklinksError.replace('$1', code));
+		});
+		
 		return dfd.promise();
 	};
 	
