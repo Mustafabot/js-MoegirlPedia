@@ -1,10 +1,9 @@
-
 //<syntaxhighlight lang="javascript">
 
 /*
  * DisamAssist: a tool for repairing links from articles to disambiguation pages.
  */
-
+'use strict';
 ( function( mw, $, undefined ) {
 	var cfg = {};
 	var txt = {};
@@ -134,7 +133,7 @@
 				return txt.pending;
 			} else if ( editCount !== 0 ) {
 				return txt.editInProgress;
-	}
+			}
 		});
 	};
 	
@@ -245,7 +244,6 @@
 		}
 		if ( links.length === 0 ) {
 			var targetPage = getTargetPage();
-			fetchRedirects([targetPage]).done(function(redirects) {
 			getBacklinks( targetPage ).done( function( backlinks, pageTitles ) {
 				var pending = {};
 				$.each( pendingSaves, function() {
@@ -270,7 +268,6 @@
 					doPage();
 				}
 			} ).fail( error );
-		}).fail(error);
 		} else {
 			currentPageTitle = links.shift();
 			displayedPages[currentPageTitle] = true;
@@ -919,51 +916,64 @@
 	var getBacklinks = function( page ) {
 		var dfd = new $.Deferred();
 		var api = new mw.Api();
-		// 构建查询页面列表，包含目标页和所有重定向页
-		var pagesToQuery = [page];
-		if (redirects && Array.isArray(redirects)) {
-			redirects.forEach(function(redirect) {
-				if (redirect.to === page && pagesToQuery.indexOf(redirect.from) === -1) {
-					pagesToQuery.push(redirect.from);
-				}
-			});
-		}
 		
-		// 逐个查询每个页面的链入链接
-		var allBacklinks = [];
-		var allLinkTitles = [getCanonicalTitle(page)];
-		
-		// 为每个页面创建一个Promise
-		var promises = pagesToQuery.map(function(pageToQuery) {
-			return api.get({
+		// 递归函数处理分页
+		var fetchBacklinks = function( page, continueParam ) {
+			var params = {
 				'action': 'query',
-				'list': 'search',
-				'srsearch': 'insource:"' + pageToQuery + '" linksto:"' + pageToQuery + '"',
-				'srlimit': cfg.backlinkLimit,
-				'srnamespace': cfg.targetNamespaces.join('|')
-			}).then(function(data) {
-				// 处理查询结果
-				$.each(data.query.search, function() {
-					// 避免重复添加
-					if (allBacklinks.indexOf(this.title) === -1) {
-						allBacklinks.push(this.title);
-					}
-				});
+				'list': 'backlinks',
+				'bltitle': page,
+				'blredirect': true,
+				'bllimit': cfg.backlinkLimit,
+				'blnamespace': cfg.targetNamespaces.join( '|' )
+			};
+			
+			// 如果有continue参数，则添加到请求中
+			if ( continueParam ) {
+				params.blcontinue = continueParam;
+			}
+			
+			return api.get( params ).then( function( data ) {
+				// 收集当前页的反向链接
+				var backlinks = [];
+				var linkTitles = [];
 				
-				// 添加链接标题
-				var canonicalTitle = getCanonicalTitle(pageToQuery);
-				if (allLinkTitles.indexOf(canonicalTitle) === -1) {
-					allLinkTitles.push(canonicalTitle);
+				$.each( data.query.backlinks, function() {
+					backlinks.push( this.title );
+					if ( this.redirlinks ) {
+						linkTitles.push( this.title );
+						$.each( this.redirlinks, function() {
+							backlinks.push( this.title );
+						} );
+					}
+				} );
+				
+				// 检查是否有更多结果
+				if ( data.continue && data.continue.blcontinue ) {
+					// 递归获取下一页结果
+					return fetchBacklinks( page, data.continue.blcontinue ).then( function( nextResult ) {
+						// 合并结果
+						return {
+							backlinks: backlinks.concat( nextResult.backlinks ),
+							linkTitles: linkTitles.concat( nextResult.linkTitles )
+						};
+					} );
+				} else {
+					// 没有更多结果，返回当前结果
+					return $.Deferred().resolve( {
+						backlinks: backlinks,
+						linkTitles: linkTitles
+					} );
 				}
-			});
-		});
+			} );
+		};
 		
-		// 等待所有查询完成
-		Promise.all(promises).then(function() {
-			dfd.resolve(allBacklinks, allLinkTitles);
-		}).catch(function(code, data) {
-			dfd.reject(txt.getBacklinksError.replace('$1', code));
-		});
+		// 开始获取反向链接
+		fetchBacklinks( page ).then( function( result ) {
+			dfd.resolve( result.backlinks, result.linkTitles );
+		} ).fail( function( code, data ) {
+			dfd.reject( txt.getBacklinksError.replace( '$1', code ) );
+		} );
 		
 		return dfd.promise();
 	};
