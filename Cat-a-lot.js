@@ -115,7 +115,7 @@ curly:0, camelcase:0, no-useless-escape:0, no-alert:0 */ // extends: wikimedia
 		searchmode: false,
 		version: '4.77',
 		setHeight: 450,
-		changeTag: userGrp.includes('bot') ? 'Bot' : 'Automation tool',
+		changeTag: 'Bot',
 
 		settings: {
 			/* Any category in this category is deemed a disambiguation category; i.e., a category that should not contain
