@@ -16,8 +16,10 @@ mw.loader.using(["mediawiki.api", "mediawiki.Title", "ext.gadget.libOOUIDialog"]
         let i, len;
         for (i = 0, len = arr.length; i < len; i++) {
             let s = arr[i];
-            s = s.trim();
-            if (s) { ret.push(s); }
+            s = s.trim().replace(/^(?:cm|en):/, '');
+            if (s) { 
+                ret.push(s); 
+            }
         }
         return ret;
     }
