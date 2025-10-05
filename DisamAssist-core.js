@@ -918,17 +918,24 @@
 		var api = new mw.Api();
 		api.get( {
 			'action': 'query',
-			'list': 'search',
-			'srsearch': 'insource:\"' + page + '\" linksto:\"' + page + '\"',
-			'srlimit': cfg.backlinkLimit,
-			'srnamespace': cfg.targetNamespaces.join( '|' )
+			'list': 'backlinks',
+			'bltitle': page,
+			'blredirect': true,
+			'bllimit': cfg.backlinkLimit,
+			'blnamespace': cfg.targetNamespaces.join( '|' )
 		} ).done( function( data ) {
 			// There might be duplicate entries in some corner cases. We don't care,
 			// since we are going to check later, anyway
 			var backlinks = [];
 			var linkTitles = [getCanonicalTitle( page )];
-			$.each( data.query.search, function() {
+			$.each( data.query.backlinks, function() {
 				backlinks.push( this.title );
+				if ( this.redirlinks ) {
+					linkTitles.push( this.title );
+					$.each( this.redirlinks, function() {
+						backlinks.push( this.title );
+					} );
+				}
 			} );
 			dfd.resolve( backlinks, linkTitles );
 		} ).fail( function( code, data ) {
