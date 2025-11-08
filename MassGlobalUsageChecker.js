@@ -18,7 +18,7 @@
         pageAliases: ['批量检测全域文件用途'],
         batchSize: (mw.config.get('wgUserGroups') || []).some(g => ['sysop', 'bot' ].includes(g)) ? 500 : 50, // 根据用户组确定批处理大小
         maxResults: (mw.config.get('wgUserGroups') || []).some(g => ['sysop', 'bot'].includes(g)) ? 5000 : 500, // 根据用户组确定最大结果数量
-        version: '1.3.0' // 版本号 - 更新为批量请求
+        version: '1.4.0' // 版本号 - 新增页面名称导出功能
     };
 
     // 工具初始化
@@ -210,6 +210,9 @@
         var totalUsages = 0;
         var filesWithUsage = 0;
         
+        // 收集所有页面名称用于导出
+        var allPageNames = new Set();
+        
         Object.keys(results).forEach(function(filename) {
             var result = results[filename];
             if (!result.error) {
@@ -222,6 +225,14 @@
                     totalUsages += usageCount;
                     if (usageCount > 0) {
                         filesWithUsage++;
+                        
+                        // 收集页面名称
+                        page.globalusage.forEach(function(usage) {
+                            var namespace = usage.ns_text || '';
+                            var title = usage.title || '未知页面';
+                            var fullTitle = namespace ? namespace + ':' + title : title;
+                            allPageNames.add(fullTitle);
+                        });
                     }
                 }
             }
@@ -230,10 +241,31 @@
         $resultsContainer.append(
             $('<div class="result-summary" style="margin-bottom: 15px;">')
             .append('<h3>检测结果摘要</h3>')
-            .append('<p>共检测 <strong>' + totalFiles + '</strong> 个文件，' + 
+            .append('<p>共检测 <strong>' + totalFiles + '</strong> 个文件，' +
                    '其中 <strong>' + filesWithUsage + '</strong> 个文件有使用记录，' +
                    '总共 <strong>' + totalUsages + '</strong> 处使用位置。</p>')
         );
+        
+        // 添加导出按钮（只有在有页面名称时才显示）
+        if (allPageNames.size > 0) {
+            $resultsContainer.append(
+                $('<div class="export-panel" style="margin: 15px 0; padding: 10px; background-color: #f8f9fa; border: 1px solid #a2a9b1;">')
+                .append('<h4>导出功能</h4>')
+                .append('<p>本次查询共找到 <strong>' + allPageNames.size + '</strong> 个不重复的页面名称</p>')
+                .append('<button id="export-pages" class="mw-ui-button mw-ui-progressive">导出页面名称列表</button>')
+                .append('<button id="copy-pages" class="mw-ui-button mw-ui-constructive" style="margin-left: 10px;">复制到剪贴板</button>')
+            );
+            
+            // 绑定导出事件
+            $('#export-pages').on('click', function() {
+                GlobalUsageChecker.exportPageNames(Array.from(allPageNames));
+            });
+            
+            // 绑定复制事件
+            $('#copy-pages').on('click', function() {
+                GlobalUsageChecker.copyToClipboard(Array.from(allPageNames));
+            });
+        }
         
         // 创建结果表格
         var $table = $('<table class="wikitable sortable" style="width: 100%;">')
@@ -320,6 +352,52 @@
                 $table.tablesorter();
             }, 100);
         }
+    };
+
+    // 导出页面名称列表
+    GlobalUsageChecker.exportPageNames = function(pageNames) {
+        // 对页面名称进行排序，便于后续处理
+        var sortedPageNames = pageNames.sort();
+        var content = sortedPageNames.join('\n');
+        var blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+        var url = URL.createObjectURL(blob);
+        
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = '页面名称列表_' + new Date().toISOString().slice(0, 10) + '.txt';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        mw.notify('页面名称列表已导出（已排序）', {type: 'success'});
+    };
+
+    // 复制到剪贴板
+    GlobalUsageChecker.copyToClipboard = function(pageNames) {
+        // 对页面名称进行排序，便于后续处理
+        var sortedPageNames = pageNames.sort();
+        var text = sortedPageNames.join('\n');
+        
+        var textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        
+        try {
+            var successful = document.execCommand('copy');
+            if (successful) {
+                mw.notify('页面名称列表已复制到剪贴板（已排序）', {type: 'success'});
+            } else {
+                mw.notify('复制失败，请手动复制', {type: 'error'});
+            }
+        } catch (err) {
+            mw.notify('复制失败: ' + err.message, {type: 'error'});
+        }
+        
+        document.body.removeChild(textarea);
     };
 
     // 在DOM准备好后初始化
