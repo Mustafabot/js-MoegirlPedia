@@ -18,7 +18,7 @@
         pageAliases: ['批量检测全域文件用途'],
         batchSize: (mw.config.get('wgUserGroups') || []).some(g => ['sysop', 'bot' ].includes(g)) ? 500 : 50, // 根据用户组确定批处理大小
         maxResults: (mw.config.get('wgUserGroups') || []).some(g => ['sysop', 'bot'].includes(g)) ? 5000 : 500, // 根据用户组确定最大结果数量
-        version: '1.4.0' // 版本号 - 新增页面名称导出功能
+        version: '1.4.1' // 版本号 - 新增页面名称导出功能
     };
 
     // 工具初始化
