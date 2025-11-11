@@ -299,7 +299,18 @@
             var page = pageId ? pages[pageId] : null;
             
             if (!page || pageId === '-1') {
-                $row.append('<td colspan="2" class="error">文件不存在</td>');
+                // 文件不存在，但仍显示使用情况（如果有的话）
+                var globalUsage = [];
+                
+                // 使用次数列
+                $row.append('<td>' + globalUsage.length + '</td>');
+                
+                // 详细信息列 - 显示文件不存在提示和使用情况
+                var $details = $('<td>');
+                $details.append('<div class="error" style="margin-bottom: 8px;">文件不存在</div>');
+                $details.append(GlobalUsageChecker.createUsageDetails(globalUsage));
+                
+                $row.append($details);
                 $tbody.append($row);
                 return;
             }
@@ -311,33 +322,7 @@
             
             // 详细信息列
             var $details = $('<td>');
-            
-            if (globalUsage.length === 0) {
-                $details.text('无使用记录');
-            } else {
-                var $usageList = $('<ul>');
-                
-                globalUsage.forEach(function(usage) {
-                    var wiki = usage.wiki || '未知Wiki';
-                    var namespace = usage.ns_text || '';
-                    var title = usage.title || '未知页面';
-                    var url = usage.url || '#';
-                    
-                    var fullTitle = namespace ? namespace + ':' + title : title;
-                    
-                    $usageList.append(
-                        $('<li>')
-                        .append(
-                            $('<a>')
-                            .attr('href', url)
-                            .attr('target', '_blank')
-                            .text(fullTitle + ' (' + wiki + ')')
-                        )
-                    );
-                });
-                
-                $details.append($usageList);
-            }
+            $details.append(GlobalUsageChecker.createUsageDetails(globalUsage));
             
             $row.append($details);
             $tbody.append($row);
@@ -352,6 +337,40 @@
                 $table.tablesorter();
             }, 100);
         }
+    };
+
+    // 创建使用情况详情
+    GlobalUsageChecker.createUsageDetails = function(globalUsage) {
+        var $container = $('<div>');
+        
+        if (globalUsage.length === 0) {
+            $container.append('<div style="color: #666; font-style: italic;">无使用记录</div>');
+        } else {
+            var $usageList = $('<ul>');
+            
+            globalUsage.forEach(function(usage) {
+                var wiki = usage.wiki || '未知Wiki';
+                var namespace = usage.ns_text || '';
+                var title = usage.title || '未知页面';
+                var url = usage.url || '#';
+                
+                var fullTitle = namespace ? namespace + ':' + title : title;
+                
+                $usageList.append(
+                    $('<li>')
+                    .append(
+                        $('<a>')
+                        .attr('href', url)
+                        .attr('target', '_blank')
+                        .text(fullTitle + ' (' + wiki + ')')
+                    )
+                );
+            });
+            
+            $container.append($usageList);
+        }
+        
+        return $container;
     };
 
     // 导出页面名称列表
