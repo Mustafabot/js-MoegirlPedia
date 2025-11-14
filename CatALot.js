@@ -22,6 +22,85 @@ curly:0, camelcase:0, no-useless-escape:0, no-alert:0 */ // extends: wikimedia
 /* jshint unused:true, forin:false, smarttabs:true, loopfunc:true, browser:true */
 	'use strict';
 	(function ($, mw) {
+		// 注入内联CSS样式
+		function injectStyles() {
+			var style = document.createElement('style');
+			style.type = 'text/css';
+			style.textContent = '#cat_a_lot {\n' +
+				'bottom: 0;\n' +
+				'display: block;\n' +
+				'position: fixed;\n' +
+				'right: 0;\n' +
+				'z-index: 100;\n' +
+				'padding: 5px;\n' +
+				'box-shadow: 0 2px 4px rgba(0,0,0,0.5); \n' +
+				'background-color: #FEF6E7;\n' +
+			'}';
+			style.textContent += '#cat_a_lot_data, #cat_a_lot_mark_counter {\n' +
+				'display: none;\n' +
+			'}';
+			style.textContent += '#cat_a_lot_data ul {\n' +
+				'list-style-image: none;\n' +
+				'list-style-type: none;\n' +
+				'margin: 0 0 0 5px;\n' +
+			'}';
+			style.textContent += '#cat_a_lot_selections, #cat_a_lot_mark_counter, #cat_a_lot_settings {\n' +
+				'background: url(/w/skins/Vector/images/portal-break.png) no-repeat;\n' +
+				'padding: 5px;\n' +
+			'}';
+			style.textContent += '#cat_a_lot_remove {\n' +
+				'font-weight: bold;\n' +
+				'display: block;\n' +
+			'}';
+			style.textContent += 'a {\n' +
+				'cursor:pointer;\n' +
+			'}';
+			style.textContent += '.cat_a_lot_move, .cat_a_lot_action {\n' +
+				'font-weight: bold;\n' +
+			'}';
+			style.textContent += '.cat_a_lot_feedback {\n' +
+				'border: 1px #A9DE16 solid !important;\n' +
+				'background: #EAF2CB /*url(//upload.wikimedia.org/wikipedia/commons/d/de/Ajax-loader.gif)*/ no-repeat 8px 14px !important;\n' +
+				'padding-left: 2.85em !important;\n' +
+				'padding-top: 10px !important;\n' +
+				'font-size: 1.1em !important;\n' +
+			'}';
+			style.textContent += '.cat_a_lot_done {\n' +
+				'background-image: url(//testingcf.jsdelivr.net/gh/Mustafabot/js-MoegirlPedia/Dialog-apply.svg.png) !important;\n' +
+				'background-position: 8px 50% !important;\n' +
+				'padding-top: 0 !important;\n' +
+			'}';
+			style.textContent += '#cat_a_lot_searchcatname {\n' +
+				'font-size: 112%;\n' +
+				'margin: -5px 0 5px -5px;\n' +
+				'width: 100%;\n' +
+			'}';
+			style.textContent += '.skin-vector #cat_a_lot {\n' +
+				'font-size: .75em;\n' +
+			'}';
+			style.textContent += '.cat_a_lot_markAsDone {\n' +
+				'background-color: #BBB !important;\n' +
+			'}';
+			style.textContent += '.cat_a_lot_selected {\n' +
+				'background-color: #DF6 !important;\n' +
+			'}';
+			style.textContent += '#cat_a_lot_no_found, #cat_a_lot_last_selected, #cat_a_lot_settings {\n' +
+				'font-weight:bold;\n' +
+			'}';
+			style.textContent += '#cat_a_lot_last_selected {\n' +
+				'outline:1px dotted #999;\n' +
+			'}';
+			style.textContent += '#cat_a_lot_category_list table {\n' +
+				'border-collapse: collapse;\n' +
+			'}';
+			style.textContent += '#cat_a_lot_category_list tr:hover {\n' +
+				'background-color: #fc3;\n' +
+			'}';
+			style.textContent += '#cat_a_lot_category_list {\n' +
+				'overflow: auto;\n' +
+			'}';
+			(document.head || document.getElementsByTagName('head')[0]).appendChild(style);
+		}
 
 
 	var formattedNS = mw.config.get('wgFormattedNamespaces'),
@@ -131,6 +210,8 @@ curly:0, camelcase:0, no-useless-escape:0, no-alert:0 */ // extends: wikimedia
 		},
 
 		init: function () {
+			// 注入内联样式
+			injectStyles();
 			// Prevent historical double marker (maybe remove in future)
 			if ( /Cat-?a-?lot/i.test( msgs[ 'cat-a-lot-pref-save-summary' ] ) ) { mw.messages.set( { 'cat-a-lot-prefix-summary': '', 'cat-a-lot-using-summary': '' } ); } else {
 				mw.messages.set( {
