@@ -3,7 +3,7 @@
 /*
  * DisamAssist: a tool for repairing links from articles to disambiguation pages.
  */
-
+'use strict';
 ( function( mw, $, undefined ) {
 	var cfg = {};
 	var txt = {};
@@ -249,24 +249,23 @@
 				$.each( pendingSaves, function() {
 					pending[this[0]] = true;
 				} );
-				possibleBacklinkDestinations = $.grep( pageTitles, function( t, ii) {
-					if ( t == targetPage ) {
-						return true;
+				var baseDestinations = [targetPage];
+				$.each( pageTitles, function( _, t ) {
+					if ( t != targetPage && removeDisam(t) != targetPage ) {
+						baseDestinations.push( t );
 					}
-					return removeDisam(t) != targetPage;
 				} );
-				// Only incoming links from pages we haven't seen yet and we aren't currently
-				// saving (displayedPages is reset when the tool is closed and opened again,
-				// while the list of pending changes isn't; if the edit cooldown is disabled,
-				// it will be empty)
-				links = $.grep( backlinks, function( el, ii ) {
-					return !displayedPages[el] && !pending[el];
+				possibleBacklinkDestinations = baseDestinations;
+				buildVariantLookupTable( baseDestinations, function() {
+					links = $.grep( backlinks, function( el, ii ) {
+						return !displayedPages[el] && !pending[el];
+					} );
+					if ( links.length === 0 ) {
+						updateContext();
+					} else {
+						doPage();
+					}
 				} );
-				if ( links.length === 0 ) {
-					updateContext();
-				} else {
-					doPage();
-				}
 			} ).fail( error );
 		} else {
 			currentPageTitle = links.shift();
@@ -730,8 +729,66 @@
 				title = getCanonicalTitle( link.title );
 			}
 		} while ( link !== null
-			&& ( !link.possiblyAmbiguous || $.inArray( title, destinations ) === -1 ) );
+			&& ( !link.possiblyAmbiguous || !isLinkToDisamTarget( title ) ) );
 		return link;
+	};
+	
+	var variantLookupTable = {};
+	
+	var isLinkToDisamTarget = function( title ) {
+		return variantLookupTable.hasOwnProperty( title );
+	};
+	
+	var buildVariantLookupTable = function( destinations, callback ) {
+		variantLookupTable = {};
+		$.each( destinations, function( _, dest ) {
+			variantLookupTable[dest] = true;
+		} );
+		
+		if ( !cfg.enableVariantConversion ) {
+			callback();
+			return;
+		}
+		
+		var variants = ['zh-hans', 'zh-hant', 'zh-cn', 'zh-tw', 'zh-hk'];
+		var totalRequests = destinations.length * variants.length;
+		var completedRequests = 0;
+		
+		if ( totalRequests === 0 ) {
+			callback();
+			return;
+		}
+		
+		$.each( destinations, function( idx, dest ) {
+			$.each( variants, function( _, variant ) {
+				$.ajax( {
+					url: mw.config.get( 'wgScriptPath' ) + '/api.php',
+					data: {
+						action: 'parse',
+						text: dest,
+						prop: 'text',
+						variant: variant,
+						format: 'json'
+					},
+					dataType: 'json',
+					type: 'POST'
+				} ).done( function( data ) {
+					if ( data && data.parse && data.parse.text ) {
+						var html = data.parse.text['*'];
+						var $html = $( html );
+						var convertedText = $html.text().trim();
+						if ( convertedText && !variantLookupTable.hasOwnProperty( convertedText ) ) {
+							variantLookupTable[convertedText] = true;
+						}
+					}
+				} ).always( function() {
+					completedRequests++;
+					if ( completedRequests === totalRequests ) {
+						callback();
+					}
+				} );
+			} );
+		} );
 	};
 	
 	/*
@@ -916,31 +973,65 @@
 	var getBacklinks = function( page ) {
 		var dfd = new $.Deferred();
 		var api = new mw.Api();
-		api.get( {
-			'action': 'query',
-			'list': 'backlinks',
-			'bltitle': page,
-			'blredirect': true,
-			'bllimit': cfg.backlinkLimit,
-			'blnamespace': cfg.targetNamespaces.join( '|' )
-		} ).done( function( data ) {
-			// There might be duplicate entries in some corner cases. We don't care,
-			// since we are going to check later, anyway
-			var backlinks = [];
-			var linkTitles = [getCanonicalTitle( page )];
-			$.each( data.query.backlinks, function() {
-				backlinks.push( this.title );
-				if ( this.redirlinks ) {
-					linkTitles.push( this.title );
-					$.each( this.redirlinks, function() {
-						backlinks.push( this.title );
+		
+		// 递归函数处理分页
+		var fetchBacklinks = function( page, continueParam ) {
+			var params = {
+				'action': 'query',
+				'list': 'backlinks',
+				'bltitle': page,
+				'blredirect': true,
+				'bllimit': cfg.backlinkLimit,
+				'blnamespace': cfg.targetNamespaces.join( '|' )
+			};
+			
+			// 如果有continue参数，则添加到请求中
+			if ( continueParam ) {
+				params.blcontinue = continueParam;
+			}
+			
+			return api.get( params ).then( function( data ) {
+				// 收集当前页的反向链接
+				var backlinks = [];
+				var linkTitles = [];
+				
+				$.each( data.query.backlinks, function() {
+					backlinks.push( this.title );
+					if ( this.redirlinks ) {
+						linkTitles.push( this.title );
+						$.each( this.redirlinks, function() {
+							backlinks.push( this.title );
+						} );
+					}
+				} );
+				
+				// 检查是否有更多结果
+				if ( data.continue && data.continue.blcontinue ) {
+					// 递归获取下一页结果
+					return fetchBacklinks( page, data.continue.blcontinue ).then( function( nextResult ) {
+						// 合并结果
+						return {
+							backlinks: backlinks.concat( nextResult.backlinks ),
+							linkTitles: linkTitles.concat( nextResult.linkTitles )
+						};
+					} );
+				} else {
+					// 没有更多结果，返回当前结果
+					return $.Deferred().resolve( {
+						backlinks: backlinks,
+						linkTitles: linkTitles
 					} );
 				}
 			} );
-			dfd.resolve( backlinks, linkTitles );
+		};
+		
+		// 开始获取反向链接
+		fetchBacklinks( page ).then( function( result ) {
+			dfd.resolve( result.backlinks, result.linkTitles );
 		} ).fail( function( code, data ) {
 			dfd.reject( txt.getBacklinksError.replace( '$1', code ) );
 		} );
+		
 		return dfd.promise();
 	};
 	
