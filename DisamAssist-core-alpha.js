@@ -249,14 +249,14 @@
 				$.each( pendingSaves, function() {
 					pending[this[0]] = true;
 				} );
-				var baseDestinations = $.grep( pageTitles, function( t, ii) {
-					if ( t == targetPage ) {
-						return true;
+				var baseDestinations = [targetPage];
+				$.each( pageTitles, function( _, t ) {
+					if ( t != targetPage && removeDisam(t) != targetPage ) {
+						baseDestinations.push( t );
 					}
-					return removeDisam(t) != targetPage;
 				} );
-				expandDestinationsWithVariants( baseDestinations, function( expandedDestinations ) {
-					possibleBacklinkDestinations = expandedDestinations;
+				possibleBacklinkDestinations = baseDestinations;
+				buildVariantLookupTable( baseDestinations, function() {
 					links = $.grep( backlinks, function( el, ii ) {
 						return !displayedPages[el] && !pending[el];
 					} );
@@ -729,82 +729,33 @@
 				title = getCanonicalTitle( link.title );
 			}
 		} while ( link !== null
-			&& ( !link.possiblyAmbiguous || !isLinkToDisamTarget( title, destinations ) ) );
+			&& ( !link.possiblyAmbiguous || !isLinkToDisamTarget( title ) ) );
 		return link;
 	};
 	
-	/*
-	 * Check if a title is or converts to one of the destination pages.
-	 * This handles the case where a traditional Chinese link title
-	 * auto-converts to a simplified Chinese disambiguation page.
-	 */
-	var isLinkToDisamTarget = function( title, destinations ) {
-		if ( $.inArray( title, destinations ) !== -1 ) {
-			return true;
-		}
-		if ( cfg.enableVariantConversion ) {
-			var convertedVariants = getTitleVariants( title );
-			for ( var i = 0; i < convertedVariants.length; i++ ) {
-				if ( $.inArray( convertedVariants[i], destinations ) !== -1 ) {
-					return true;
-				}
-			}
-		}
-		return false;
+	var variantLookupTable = {};
+	
+	var isLinkToDisamTarget = function( title ) {
+		return variantLookupTable.hasOwnProperty( title );
 	};
 	
-	var titleVariantCache = {};
-	var getTitleVariants = function( title ) {
-		if ( !title ) {
-			return [];
-		}
-		if ( titleVariantCache[title] ) {
-			return titleVariantCache[title];
-		}
-		var variants = ['zh-hans', 'zh-hant', 'zh-cn', 'zh-tw', 'zh-hk'];
-		var results = [title];
-		
-		$.each( variants, function( _, variant ) {
-			$.ajax( {
-				url: mw.config.get( 'wgScriptPath' ) + '/api.php',
-				data: {
-					action: 'parse',
-					text: title,
-					prop: 'text',
-					variant: variant,
-					format: 'json'
-				},
-				dataType: 'json',
-				type: 'POST',
-				async: false
-			} ).done( function( data ) {
-				if ( data && data.parse && data.parse.text ) {
-					var html = data.parse.text['*'];
-					var $html = $( html );
-					var convertedText = $html.text().trim();
-					if ( convertedText && convertedText !== title && $.inArray( convertedText, results ) === -1 ) {
-						results.push( convertedText );
-					}
-				}
-			} );
+	var buildVariantLookupTable = function( destinations, callback ) {
+		variantLookupTable = {};
+		$.each( destinations, function( _, dest ) {
+			variantLookupTable[dest] = true;
 		} );
 		
-		titleVariantCache[title] = results;
-		return results;
-	};
-	
-	var expandDestinationsWithVariants = function( destinations, callback ) {
 		if ( !cfg.enableVariantConversion ) {
-			callback( destinations );
+			callback();
 			return;
 		}
-		var expanded = destinations.slice();
+		
 		var variants = ['zh-hans', 'zh-hant', 'zh-cn', 'zh-tw', 'zh-hk'];
 		var totalRequests = destinations.length * variants.length;
 		var completedRequests = 0;
 		
 		if ( totalRequests === 0 ) {
-			callback( expanded );
+			callback();
 			return;
 		}
 		
@@ -826,14 +777,14 @@
 						var html = data.parse.text['*'];
 						var $html = $( html );
 						var convertedText = $html.text().trim();
-						if ( convertedText && convertedText !== dest && $.inArray( convertedText, expanded ) === -1 ) {
-							expanded.push( convertedText );
+						if ( convertedText && !variantLookupTable.hasOwnProperty( convertedText ) ) {
+							variantLookupTable[convertedText] = true;
 						}
 					}
 				} ).always( function() {
 					completedRequests++;
 					if ( completedRequests === totalRequests ) {
-						callback( expanded );
+						callback();
 					}
 				} );
 			} );
