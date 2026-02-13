@@ -249,24 +249,23 @@
 				$.each( pendingSaves, function() {
 					pending[this[0]] = true;
 				} );
-				possibleBacklinkDestinations = $.grep( pageTitles, function( t, ii) {
+				var baseDestinations = $.grep( pageTitles, function( t, ii) {
 					if ( t == targetPage ) {
 						return true;
 					}
 					return removeDisam(t) != targetPage;
 				} );
-				// Only incoming links from pages we haven't seen yet and we aren't currently
-				// saving (displayedPages is reset when the tool is closed and opened again,
-				// while the list of pending changes isn't; if the edit cooldown is disabled,
-				// it will be empty)
-				links = $.grep( backlinks, function( el, ii ) {
-					return !displayedPages[el] && !pending[el];
+				expandDestinationsWithVariants( baseDestinations, function( expandedDestinations ) {
+					possibleBacklinkDestinations = expandedDestinations;
+					links = $.grep( backlinks, function( el, ii ) {
+						return !displayedPages[el] && !pending[el];
+					} );
+					if ( links.length === 0 ) {
+						updateContext();
+					} else {
+						doPage();
+					}
 				} );
-				if ( links.length === 0 ) {
-					updateContext();
-				} else {
-					doPage();
-				}
 			} ).fail( error );
 		} else {
 			currentPageTitle = links.shift();
@@ -730,8 +729,64 @@
 				title = getCanonicalTitle( link.title );
 			}
 		} while ( link !== null
-			&& ( !link.possiblyAmbiguous || $.inArray( title, destinations ) === -1 ) );
+			&& ( !link.possiblyAmbiguous || !isLinkToDisamTarget( title, destinations ) ) );
 		return link;
+	};
+	
+	/*
+	 * Check if a title is or converts to one of the destination pages.
+	 * This handles the case where a traditional Chinese link title
+	 * auto-converts to a simplified Chinese disambiguation page.
+	 */
+	var isLinkToDisamTarget = function( title, destinations ) {
+		return $.inArray( title, destinations ) !== -1;
+	};
+	
+	var expandDestinationsWithVariants = function( destinations, callback ) {
+		if ( !cfg.enableVariantConversion ) {
+			callback( destinations );
+			return;
+		}
+		var expanded = destinations.slice();
+		var variants = ['zh-hans', 'zh-hant', 'zh-cn', 'zh-tw', 'zh-hk'];
+		var totalRequests = destinations.length * variants.length;
+		var completedRequests = 0;
+		
+		if ( totalRequests === 0 ) {
+			callback( expanded );
+			return;
+		}
+		
+		$.each( destinations, function( idx, dest ) {
+			$.each( variants, function( _, variant ) {
+				$.ajax( {
+					url: mw.config.get( 'wgScriptPath' ) + '/api.php',
+					data: {
+						action: 'parse',
+						text: dest,
+						prop: 'text',
+						variant: variant,
+						format: 'json'
+					},
+					dataType: 'json',
+					type: 'POST'
+				} ).done( function( data ) {
+					if ( data && data.parse && data.parse.text ) {
+						var html = data.parse.text['*'];
+						var $html = $( html );
+						var convertedText = $html.text().trim();
+						if ( convertedText && convertedText !== dest && $.inArray( convertedText, expanded ) === -1 ) {
+							expanded.push( convertedText );
+						}
+					}
+				} ).always( function() {
+					completedRequests++;
+					if ( completedRequests === totalRequests ) {
+						callback( expanded );
+					}
+				} );
+			} );
+		} );
 	};
 	
 	/*

@@ -90,7 +90,12 @@ window.DisamAssist = jQuery.extend( true, {
 		/*
 		 * 指定通过DisamAssist作出的编辑如何影响监视列表。可能的值："watch"（添加至监视列表）, "unwatch"（从监视列表中移除）,"preferences"（与参数设置中的设定一致）, "nochange"（保持原来的监视状态）
 		 */
-		watch: 'nochange'
+		watch: 'nochange',
+		
+		/*
+		 * 是否启用繁简转换检测（当链接的繁体标题通过自动转换匹配到简体消歧义页时）
+		 */
+		enableVariantConversion: true
 	},
 
 	txt: {
