@@ -22,6 +22,92 @@ curly:0, camelcase:0, no-useless-escape:0, no-alert:0 */ // extends: wikimedia
 /* jshint unused:true, forin:false, smarttabs:true, loopfunc:true, browser:true */
 	'use strict';
 	(function ($, mw) {
+		/**
+		 * 注入内联CSS样式到页面头部
+		 * 为Cat-a-lot工具创建专用样式，包括：
+		 * - 主容器样式（固定在页面底部右侧）
+		 * - 选择状态样式（高亮显示已选择的文件）
+		 * - 反馈样式（操作完成后的视觉反馈）
+		 * - 分类列表样式（表格和悬停效果）
+		 */
+		function injectStyles() {
+			var style = document.createElement('style');
+			style.type = 'text/css';
+			style.textContent = '#cat_a_lot {\n' +
+				'bottom: 0;\n' +
+				'display: block;\n' +
+				'position: fixed;\n' +
+				'right: 0;\n' +
+				'z-index: 100;\n' +
+				'padding: 5px;\n' +
+				'box-shadow: 0 2px 4px rgba(0,0,0,0.5); \n' +
+				'background-color: #FEF6E7;\n' +
+			'}';
+			style.textContent += '#cat_a_lot_data, #cat_a_lot_mark_counter {\n' +
+				'display: none;\n' +
+			'}';
+			style.textContent += '#cat_a_lot_data ul {\n' +
+				'list-style-image: none;\n' +
+				'list-style-type: none;\n' +
+				'margin: 0 0 0 5px;\n' +
+			'}';
+			style.textContent += '#cat_a_lot_selections, #cat_a_lot_mark_counter, #cat_a_lot_settings {\n' +
+				'background: url(/w/skins/Vector/images/portal-break.png) no-repeat;\n' +
+				'padding: 5px;\n' +
+			'}';
+			style.textContent += '#cat_a_lot_remove {\n' +
+				'font-weight: bold;\n' +
+				'display: block;\n' +
+			'}';
+			style.textContent += 'a {\n' +
+				'cursor:pointer;\n' +
+			'}';
+			style.textContent += '.cat_a_lot_move, .cat_a_lot_action {\n' +
+				'font-weight: bold;\n' +
+			'}';
+			style.textContent += '.cat_a_lot_feedback {\n' +
+				'border: 1px #A9DE16 solid !important;\n' +
+				'background: #EAF2CB /*url(//upload.wikimedia.org/wikipedia/commons/d/de/Ajax-loader.gif)*/ no-repeat 8px 14px !important;\n' +
+				'padding-left: 2.85em !important;\n' +
+				'padding-top: 10px !important;\n' +
+				'font-size: 1.1em !important;\n' +
+			'}';
+			style.textContent += '.cat_a_lot_done {\n' +
+				'background-image: url(//testingcf.jsdelivr.net/gh/Mustafabot/js-MoegirlPedia/Dialog-apply.svg.png) !important;\n' +
+				'background-position: 8px 50% !important;\n' +
+				'padding-top: 0 !important;\n' +
+			'}';
+			style.textContent += '#cat_a_lot_searchcatname {\n' +
+				'font-size: 112%;\n' +
+				'margin: -5px 0 5px -5px;\n' +
+				'width: 100%;\n' +
+			'}';
+			style.textContent += '.skin-vector #cat_a_lot {\n' +
+				'font-size: .75em;\n' +
+			'}';
+			style.textContent += '.cat_a_lot_markAsDone {\n' +
+				'background-color: #BBB !important;\n' +
+			'}';
+			style.textContent += '.cat_a_lot_selected {\n' +
+				'background-color: #DF6 !important;\n' +
+			'}';
+			style.textContent += '#cat_a_lot_no_found, #cat_a_lot_last_selected, #cat_a_lot_settings {\n' +
+				'font-weight:bold;\n' +
+			'}';
+			style.textContent += '#cat_a_lot_last_selected {\n' +
+				'outline:1px dotted #999;\n' +
+			'}';
+			style.textContent += '#cat_a_lot_category_list table {\n' +
+				'border-collapse: collapse;\n' +
+			'}';
+			style.textContent += '#cat_a_lot_category_list tr:hover {\n' +
+				'background-color: #fc3;\n' +
+			'}';
+			style.textContent += '#cat_a_lot_category_list {\n' +
+				'overflow: auto;\n' +
+			'}';
+			(document.head || document.getElementsByTagName('head')[0]).appendChild(style);
+		}
 
 
 	var formattedNS = mw.config.get('wgFormattedNamespaces'),
@@ -30,6 +116,15 @@ curly:0, camelcase:0, no-useless-escape:0, no-alert:0 */ // extends: wikimedia
 		userGrp = mw.config.get('wgUserGroups'),
 		project = mw.config.get('wgDBname');
 
+	/**
+	 * 国际化消息定义对象
+	 * 包含Cat-a-lot工具的所有用户界面文本和提示信息
+	 * 按照功能分类组织：
+	 * - Preferences: 用户偏好设置相关文本
+	 * - Progress: 操作进度和结果反馈文本
+	 * - Actions: 操作按钮和动作文本
+	 * - Summaries: 编辑摘要模板
+	 */
 	var msgs = {
 		// Preferences
 		// new: added 2012-09-19. Please translate.
@@ -75,11 +170,12 @@ curly:0, camelcase:0, no-useless-escape:0, no-alert:0 */ // extends: wikimedia
 		'cat-a-lot-move': '移动',
 		'cat-a-lot-add': '添加',
 		// 'cat-a-lot-remove-from-cat': 'Remove from this category',
-		'cat-a-lot-overcat': '检查重分类',
+		'cat-a-lot-overcat': '遍历分类',
 		'cat-a-lot-enter-name': '输入分类名称',
-		'cat-a-lot-select': '选择',
-		'cat-a-lot-all': '全部',
-		'cat-a-lot-none': '无',
+		// 界面选择器配置
+		'cat-a-lot-select': '选择', // 界面选择器按钮文本
+		'cat-a-lot-all': '全部', // 全选按钮文本
+		'cat-a-lot-none': '无', // 取消选择按钮文本
 		// 'cat-a-lot-none-selected': 'No files selected!', 'Ooui-selectfile-placeholder'
 
 		// Summaries (project language):
@@ -92,6 +188,12 @@ curly:0, camelcase:0, no-useless-escape:0, no-alert:0 */ // extends: wikimedia
 		'cat-a-lot-using-summary': ''
 	};
 
+	/**
+	 * 消息处理函数
+	 * 将MediaWiki消息系统与Cat-a-lot的消息对象结合
+	 * @param {...*} params - 消息键名和参数
+	 * @returns {string} 本地化的消息文本
+	 */
 	function msg( /* params */) {
 		var args = Array.prototype.slice.call(arguments, 0);
 		args[0] = 'cat-a-lot-' + args[0];
@@ -109,6 +211,16 @@ curly:0, camelcase:0, no-useless-escape:0, no-alert:0 */ // extends: wikimedia
 		non,
 		r; // result file count for overcat
 
+	/**
+	 * Cat-a-lot 核心对象
+	 * 包含所有主要功能和配置
+	 * 主要功能：
+	 * - 分类管理：显示父分类、子分类
+	 * - 批量操作：添加、复制、移动、移除分类
+	 * - 用户界面：搜索、选择、进度显示
+	 * - 设置管理：用户偏好配置
+	 * - API集成：与MediaWiki API通信
+	 */
 	var CAL = mw.libs.catALot = {
 		apiUrl: mw.util.wikiScript('api'),
 		origin: '',
@@ -130,7 +242,19 @@ curly:0, camelcase:0, no-useless-escape:0, no-alert:0 */ // extends: wikimedia
 
 		},
 
+		/**
+		 * 初始化Cat-a-lot工具
+		 * 这是主要的初始化函数，执行以下任务：
+		 * 1. 注入CSS样式
+		 * 2. 设置国际化消息
+		 * 3. 创建用户界面元素
+		 * 4. 绑定事件处理器
+		 * 5. 根据当前页面类型确定搜索模式
+		 * 6. 延迟加载本地化文件
+		 */
 		init: function () {
+			// 注入内联样式
+			injectStyles();
 			// Prevent historical double marker (maybe remove in future)
 			if ( /Cat-?a-?lot/i.test( msgs[ 'cat-a-lot-pref-save-summary' ] ) ) { mw.messages.set( { 'cat-a-lot-prefix-summary': '', 'cat-a-lot-using-summary': '' } ); } else {
 				mw.messages.set( {
@@ -347,6 +471,15 @@ curly:0, camelcase:0, no-useless-escape:0, no-alert:0 */ // extends: wikimedia
 			);
 		},
 
+		/**
+		 * 处理"遍历分类"功能
+		 * 分析当前选中的文件，查看它们属于哪些子分类或父分类
+		 * 并通过不同颜色的边框标记显示分类关系：
+		 * - 橙色：目标分类
+		 * - 绿色：子分类
+		 * - 红色：父分类
+		 * @param {Event} e - 点击事件对象
+		 */
 		getOverCat: function (e) {
 			var files = [];
 			r = 0; // result counter
@@ -416,6 +549,17 @@ curly:0, camelcase:0, no-useless-escape:0, no-alert:0 */ // extends: wikimedia
 			$.removeSpinner('overcat');
 		},
 
+		/**
+		 * 根据搜索模式查找页面上的所有可选择标签
+		 * 支持多种MediaWiki页面类型：
+		 * - search: 搜索结果页面
+		 * - category: 分类页面
+		 * - contribs: 用户贡献页面
+		 * - prefix: 前缀索引页面
+		 * - listfiles: 文件列表页面
+		 * - gallery: 画廊视图页面
+		 * @param {string} searchmode - 搜索模式类型
+		 */
 		findAllLabels: function (searchmode) {
 			// It's possible to allow any kind of pages as well but what happens if you click on "select all" and don't expect it
 			switch (searchmode) {
@@ -451,6 +595,13 @@ curly:0, camelcase:0, no-useless-escape:0, no-alert:0 */ // extends: wikimedia
 			}
 		},
 
+		/**
+		 * 从链接元素中提取页面标题
+		 * 尝试从href属性或title属性中获取规范的页面标题
+		 * 处理URL解码和下划线到空格的转换
+		 * @param {jQuery} $a - 包含链接的jQuery对象
+		 * @returns {string} 提取的页面标题，如果提取失败返回空字符串
+		 */
 		getTitleFromLink: function ($a) {
 			try {
 				return decodeURIComponent($a.attr('href'))
@@ -461,8 +612,10 @@ curly:0, camelcase:0, no-useless-escape:0, no-alert:0 */ // extends: wikimedia
 		},
 
 		/**
-		 *  @brief Get title from selected pages
-		 *  @return [array] touple of page title and $object
+		 * 获取当前选中的页面标签和标题
+		 * 用于从页面中提取已选择的项目信息
+		 * 兼容性：该函数在 MediaWiki:Gadget-ACDC.js 中使用，请避免不兼容的更改
+		 * @returns {Array} 包含页面标题和jQuery对象元组的数组
 		 */
 		// this function is used in [[MediaWiki:Gadget-ACDC.js]], please avoid making incompatible changes ☺
 		getMarkedLabels: function () {
@@ -478,6 +631,11 @@ curly:0, camelcase:0, no-useless-escape:0, no-alert:0 */ // extends: wikimedia
 			});
 		},
 
+		/**
+		 * 更新选择计数器显示
+		 * 显示当前选中的文件数量，并设置页面离开警告
+		 * 同时修复位置偏移问题
+		 */
 		updateSelectionCounter: function () {
 			this.selectedLabels = this.labels.filter('.cat_a_lot_selected:visible');
 			var first = $markCounter.is(':hidden');
@@ -495,6 +653,11 @@ curly:0, camelcase:0, no-useless-escape:0, no-alert:0 */ // extends: wikimedia
 			}
 		},
 
+		/**
+		 * 创建可点击的标签
+		 * 扫描当前页面的所有标签，使其可被选择
+		 * 根据搜索模式查找合适的标签
+		 */
 		makeClickable: function () {
 			this.labels = $();
 			this.pageLabels = $(); // only for distinct all selections
@@ -505,6 +668,11 @@ curly:0, camelcase:0, no-useless-escape:0, no-alert:0 */ // extends: wikimedia
 				.addClass('cat_a_lot_label');
 		},
 
+		/**
+		 * 切换所有标签的选择状态
+		 * 支持全选、取消选择、反选操作
+		 * @param {string|boolean} select - 选择状态：'files'、'all'、'none'、'invert' 或布尔值
+		 */
 		toggleAll: function (select) {
 			if (typeof select === 'string' && this.pageLabels[0]) {
 				this.pageLabels.toggleClass('cat_a_lot_selected', true);
@@ -517,6 +685,11 @@ curly:0, camelcase:0, no-useless-escape:0, no-alert:0 */ // extends: wikimedia
 			this.updateSelectionCounter();
 		},
 
+		/**
+		 * 获取子分类列表
+		 * 通过API查询指定分类下的所有子分类
+		 * 使用异步API调用，子分类信息存储在CAL.subCats中
+		 */
 		getSubCats: function () {
 			var data = {
 				list: 'categorymembers',
@@ -536,6 +709,11 @@ curly:0, camelcase:0, no-useless-escape:0, no-alert:0 */ // extends: wikimedia
 			});
 		},
 
+		/**
+		 * 获取父分类列表
+		 * 通过API查询指定分类被包含在哪些父分类中
+		 * 异步调用，结果存储在CAL.parentCats中
+		 */
 		getParentCats: function () {
 			var data = {
 				prop: 'categories',
@@ -566,6 +744,14 @@ curly:0, camelcase:0, no-useless-escape:0, no-alert:0 */ // extends: wikimedia
 			});
 		},
 
+		/**
+		 * 创建本地化的命名空间正则表达式
+		 * 用于生成匹配特定命名空间的正则表达式
+		 * 支持大小写不敏感和空白字符匹配
+		 * @param {number} namespaceNumber - 命名空间编号
+		 * @param {string} fallback - 回退命名空间名称
+		 * @returns {string} 编译后的正则表达式字符串
+		 */
 		localizedRegex: function (namespaceNumber, fallback) {
 			// Copied from HotCat, thanks Lupo.
 			var wikiTextBlank = '[\\t _\\xA0\\u1680\\u180E\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000]+';
@@ -594,6 +780,13 @@ curly:0, camelcase:0, no-useless-escape:0, no-alert:0 */ // extends: wikimedia
 			return ('(?:' + RegexString + ')');
 		},
 
+		/**
+		 * 构建分类正则表达式
+		 * 生成用于匹配指定分类的正则表达式模式
+		 * 处理大小写不敏感、空格和下划线匹配
+		 * @param {string} category - 分类名称
+		 * @returns {RegExp} 编译后的正则表达式
+		 */
 		regexCatBuilder: function (category) {
 			var catname = this.localizedRegex(14, 'Category');
 
@@ -692,6 +885,15 @@ curly:0, camelcase:0, no-useless-escape:0, no-alert:0 */ // extends: wikimedia
 			return (this.settings.docleanup ? text.replace(/\{\{\s*[Cc]heck categories\s*(\|?.*?)\}\}/, '') : text);
 		},
 
+		/**
+		 * 编辑页面分类的核心函数
+		 * 处理添加、复制、移动、移除分类操作
+		 * 包含文本处理、编辑摘要生成和API调用逻辑
+		 * @param {Object} result - API查询结果
+		 * @param {Array} file - 页面信息数组 [标题, jQuery对象]
+		 * @param {string} targetcat - 目标分类名称
+		 * @param {string} mode - 操作模式：'add', 'copy', 'move', 'remove'
+		 */
 		editCategories: function (result, file, targetcat, mode) {
 			if (!result || !result.query) {
 				// Happens on unstable wifi connections..
@@ -927,12 +1129,13 @@ curly:0, camelcase:0, no-useless-escape:0, no-alert:0 */ // extends: wikimedia
 		},
 
 		/**
-	*  @brief set parameters for API call,
-	*  	convert targetcat to string, get selected pages/files
-	*  @param [dom object] targetcat with data
-	*  @param [string] mode action
-	*  @return Return API call getTargetCat with pages
-	*/
+		 * 执行分类操作的主要函数
+		 * 根据用户选择的分类和操作模式，准备API调用参数
+		 * 显示进度对话框并开始批量操作流程
+		 * @param {Object} targetcat - 目标分类DOM对象
+		 * @param {string} mode - 操作模式：add/copy/move/remove
+		 * @returns {Object} 选中的页面列表
+		 */
 		doSomething: function (targetcat, mode) {
 			var pages = this.getMarkedLabels();
 			if (!pages.length) { return alert(mw.msg('Ooui-selectfile-placeholder')); }
@@ -958,6 +1161,13 @@ curly:0, camelcase:0, no-useless-escape:0, no-alert:0 */ // extends: wikimedia
 
 		},
 
+		/**
+		 * 执行API调用的核心函数
+		 * 处理所有与MediaWiki API的通信
+		 * 包含错误处理和重试机制，支持最多30次重试
+		 * @param {Object} params - API调用参数
+		 * @param {Function} callback - 成功回调函数
+		 */
 		doAPICall: function (params, callback) {
 			params = $.extend({
 				action: 'query',
@@ -1169,6 +1379,11 @@ curly:0, camelcase:0, no-useless-escape:0, no-alert:0 */ // extends: wikimedia
 			this.getCategoryList();
 		},
 
+		/**
+		 * 执行撤销操作
+		 * 遍历撤销列表，逐个撤销之前的编辑操作
+		 * 使用MediaWiki API的undo参数进行精确撤销
+		 */
 		doUndo: function () {
 			this.cancelled = 0;
 			this.doAbort();
@@ -1208,6 +1423,11 @@ curly:0, camelcase:0, no-useless-escape:0, no-alert:0 */ // extends: wikimedia
 			}
 		},
 
+		/**
+		 * 中止操作函数
+		 * 取消所有正在进行的API调用
+		 * 清理进度对话框和界面状态
+		 */
 		doAbort: function () {
 			for (var t in this.XHR) { this.XHR[t].abort(); }
 
@@ -1219,6 +1439,11 @@ curly:0, camelcase:0, no-useless-escape:0, no-alert:0 */ // extends: wikimedia
 			this.cancelled = 1;
 		},
 
+		/**
+		 * 显示进度对话框
+		 * 创建模态对话框显示操作进度
+		 * 包含取消功能和撤销功能
+		 */
 		showProgress: function () {
 			document.body.style.cursor = 'wait';
 			this.progressDialog = $('<div>')
@@ -1298,6 +1523,11 @@ curly:0, camelcase:0, no-useless-escape:0, no-alert:0 */ // extends: wikimedia
 			});
 		},
 
+		/**
+		 * 主运行函数
+		 * 控制Cat-a-lot工具的启动和停止
+		 * 根据页面状态创建可交互界面
+		 */
 		run: function () {
 			if ($('.cat_a_lot_enabled')[0]) {
 				this.makeClickable();
@@ -1383,10 +1613,20 @@ curly:0, camelcase:0, no-useless-escape:0, no-alert:0 */ // extends: wikimedia
 			}
 		},
 
+		/**
+		 * 管理设置函数
+		 * 启动设置管理界面
+		 * 异步加载所需的外部库
+		 */
 		manageSettings: function () {
 			mw.loader.using(['//cdn.jsdelivr.net/gh/Mustafabot/js-MoegiriPedia/SettingsManager.js', '//cdn.jsdelivr.net/gh/Mustafabot/js-MoegiriPedia/SettingsUI.js', 'jquery.ui'], CAL._manageSettings);
 		},
 
+		/**
+		 * 内部设置管理函数
+		 * 处理设置保存、应用和重启动逻辑
+		 * 支持页面保存和账户公共设置两种保存方式
+		 */
 		_manageSettings: function () {
 			mw.libs.SettingsUI(CAL.defaults, 'Cat-a-lot')
 				.show()
