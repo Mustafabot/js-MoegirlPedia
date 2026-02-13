@@ -739,7 +739,58 @@
 	 * auto-converts to a simplified Chinese disambiguation page.
 	 */
 	var isLinkToDisamTarget = function( title, destinations ) {
-		return $.inArray( title, destinations ) !== -1;
+		if ( $.inArray( title, destinations ) !== -1 ) {
+			return true;
+		}
+		if ( cfg.enableVariantConversion ) {
+			var convertedVariants = getTitleVariants( title );
+			for ( var i = 0; i < convertedVariants.length; i++ ) {
+				if ( $.inArray( convertedVariants[i], destinations ) !== -1 ) {
+					return true;
+				}
+			}
+		}
+		return false;
+	};
+	
+	var titleVariantCache = {};
+	var getTitleVariants = function( title ) {
+		if ( !title ) {
+			return [];
+		}
+		if ( titleVariantCache[title] ) {
+			return titleVariantCache[title];
+		}
+		var variants = ['zh-hans', 'zh-hant', 'zh-cn', 'zh-tw', 'zh-hk'];
+		var results = [title];
+		
+		$.each( variants, function( _, variant ) {
+			$.ajax( {
+				url: mw.config.get( 'wgScriptPath' ) + '/api.php',
+				data: {
+					action: 'parse',
+					text: title,
+					prop: 'text',
+					variant: variant,
+					format: 'json'
+				},
+				dataType: 'json',
+				type: 'POST',
+				async: false
+			} ).done( function( data ) {
+				if ( data && data.parse && data.parse.text ) {
+					var html = data.parse.text['*'];
+					var $html = $( html );
+					var convertedText = $html.text().trim();
+					if ( convertedText && convertedText !== title && $.inArray( convertedText, results ) === -1 ) {
+						results.push( convertedText );
+					}
+				}
+			} );
+		} );
+		
+		titleVariantCache[title] = results;
+		return results;
 	};
 	
 	var expandDestinationsWithVariants = function( destinations, callback ) {
