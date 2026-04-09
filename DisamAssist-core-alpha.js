@@ -312,7 +312,7 @@
 			addChange( currentPageTitle, currentPageParameters, currentPageParameters.content, currentLink, summary );
 			if ( pageTitle && ( pageTitle !== getTargetPage() || extra ) ) {
 				currentPageParameters.content =
-					replaceLink( currentPageParameters.content, pageTitle, currentLink, extra || '' );
+					replaceLink( currentPageParameters.content, pageTitle, currentLink, extra || '', currentPageParameters.redirect );
 			}
 			doLink();
 		}
@@ -640,14 +640,21 @@
 	 * title: The new destination of the link
 	 * link: The link that will be modified
 	 * extra: Text that will be added after the link (optional)
+	 * isRedirect: Whether the current page is a redirect page (optional)
 	 */
-	var replaceLink = function( text, title, link, extra ) {
+	var replaceLink = function( text, title, link, extra, isRedirect ) {
 		var newContent;
+		var anchor = '';
+		var hashPos = link.title.indexOf( '#' );
+		if ( hashPos !== -1 ) {
+			anchor = link.title.substring( hashPos );
+		}
 		if ( isSamePage( title, link.description ) ) {
-			// [[B|A]] should be replaced with [[A]] rather than [[A|A]]
 			newContent = link.description;
+		} else if ( isRedirect ) {
+			newContent = title + anchor;
 		} else {
-			newContent = title + '|' + link.description;
+			newContent = title + anchor + '|' + link.description;
 		}
 		var linkStart = text.substring( 0, link.start );
 		var linkEnd = text.substring( link.end );
@@ -1109,7 +1116,8 @@
 			}
 			var rawPage = data.query.pages[key];
 			var page = {};
-			page.redirect = rawPage.redirect !== undefined;
+			var content = rawPage.revisions ? rawPage.revisions[0]['*'] : '';
+			page.redirect = rawPage.redirect !== undefined || /^\s*#(REDIRECT|重定向)\s*\[\[/i.test( content );
 			page.missing = rawPage.missing !== undefined;
 			if ( rawPage.revisions ) {
 				page.content = rawPage.revisions[0]['*'];
