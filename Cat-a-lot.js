@@ -841,7 +841,7 @@ curly:0, camelcase:0, no-useless-escape:0, no-alert:0 */ // extends: wikimedia
 						// NOTE: This timer is here to make sure edits wait for each other.
 						// If CAL.getContent() and doAPICall() returned a correct Promise,
 						// then the timer would not be needed.
-						promise = promise.then(() => timer(userGrp?.some((group) => ['bot', 'flood'].includes(group)) ? 1000 : 21000)).then(() => {
+						promise = promise.then(() => timer(userGrp?.some((group) => ['bot', 'flood'].includes(group)) ? 100 : 21000)).then(() => {
 							CAL.getContent(pages[i], targetcat, mode);
 						});
 					}
