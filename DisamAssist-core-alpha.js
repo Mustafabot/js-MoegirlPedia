@@ -289,8 +289,18 @@
 
 				doLink();
 			} else {
-				loadPage( currentPageTitle ).done( function( data ) {
-					currentPageParameters = data;
+				// Cache miss: 批量加载当前页面 + 剩余未缓存的页面
+				var batchTitles = [ currentPageTitle ];
+				for ( var i = 0; i < links.length && batchTitles.length < cfg.queryTitleLimit; i++ ) {
+					if ( !pageCache.hasOwnProperty( links[i] ) ) {
+						batchTitles.push( links[i] );
+					}
+				}
+				loadPagesBatch( batchTitles ).done( function( results ) {
+					$.extend( pageCache, results );
+					// 从缓存中取出当前页面，确保只消费一次
+					delete pageCache[ currentPageTitle ];
+					currentPageParameters = results[ currentPageTitle ];
 					currentLink = null;
 					doLink();
 				} ).fail( error );
