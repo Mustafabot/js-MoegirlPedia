@@ -16,6 +16,7 @@
 	var choosing = false;
 	var canMarkIntentionalLinks = false;
 	var displayedPages = {};
+	var pageCache = {};
 	var editCount = 0;
 	var editLimit;
 	var pendingSaves = [];
@@ -57,6 +58,7 @@
 			links = [];
 			pageChanges = [];
 			displayedPages = {};
+			pageCache = {};
 			ensureDABExists().then( function( canMark ) {
 				canMarkIntentionalLinks = canMark;
 				createUI();
@@ -263,7 +265,9 @@
 					if ( links.length === 0 ) {
 						updateContext();
 					} else {
-						doPage();
+						prefetchNextBatch( function() {
+							doPage();
+						} );
 					}
 				} );
 			} ).fail( error );
@@ -271,11 +275,26 @@
 			currentPageTitle = links.shift();
 			displayedPages[currentPageTitle] = true;
 			toggleActionButtons( false );
-			loadPage( currentPageTitle ).done( function( data ) {
-				currentPageParameters = data;
+
+			var cachedPage = pageCache[currentPageTitle];
+			if ( cachedPage ) {
+				delete pageCache[currentPageTitle];
+				currentPageParameters = cachedPage;
 				currentLink = null;
+
+				var cacheSize = Object.keys( pageCache ).length;
+				if ( cacheSize <= 1 && links.length > 0 ) {
+					prefetchNextBatch();
+				}
+
 				doLink();
-			} ).fail( error );
+			} else {
+				loadPage( currentPageTitle ).done( function( data ) {
+					currentPageParameters = data;
+					currentLink = null;
+					doLink();
+				} ).fail( error );
+			}
 		}
 	};
 	
@@ -994,7 +1013,8 @@
 			
 			// 如果有continue参数，则添加到请求中
 			if ( continueParam ) {
-				params.blcontinue = continueParam;
+				params.blcontinue = continueParam.blcontinue;
+				params.continue = continueParam.continue;
 			}
 			
 			return api.get( params ).then( function( data ) {
@@ -1015,20 +1035,19 @@
 				// 检查是否有更多结果
 				if ( data.continue && data.continue.blcontinue ) {
 					// 递归获取下一页结果
-					return fetchBacklinks( page, data.continue.blcontinue ).then( function( nextResult ) {
+					return fetchBacklinks( page, data.continue ).then( function( nextResult ) {
 						// 合并结果
 						return {
 							backlinks: backlinks.concat( nextResult.backlinks ),
 							linkTitles: linkTitles.concat( nextResult.linkTitles )
 						};
 					} );
-				} else {
-					// 没有更多结果，返回当前结果
-					return $.Deferred().resolve( {
-						backlinks: backlinks,
-						linkTitles: linkTitles
-					} );
 				}
+				// 没有更多结果，返回当前结果
+				return {
+					backlinks: backlinks,
+					linkTitles: linkTitles
+				};
 			} );
 		};
 		
@@ -1135,6 +1154,80 @@
 		return dfd.promise();
 	};
 	
+	/*
+	 * Load multiple pages at once. Returns a jQuery promise (success - mapping
+	 * of title to page data, failure - error description)
+	 * pageTitles: Array of page titles
+	 */
+	var loadPagesBatch = function( pageTitles ) {
+		var dfd = new $.Deferred();
+		if ( pageTitles.length === 0 ) {
+			dfd.resolve( {} );
+			return dfd.promise();
+		}
+		var api = new mw.Api();
+		api.get( {
+			action: 'query',
+			titles: pageTitles.join( '|' ),
+			prop: 'revisions',
+			rvprop: 'timestamp|content',
+			meta: 'tokens',
+			type: 'csrf'
+		} ).done( function( data ) {
+			var pages = data.query.pages;
+			var token = data.query.tokens.csrftoken;
+			var results = {};
+			for ( var key in pages ) {
+				if ( !pages.hasOwnProperty( key ) ) {
+					continue;
+				}
+				var rawPage = pages[key];
+				var page = {};
+				var content = rawPage.revisions ? rawPage.revisions[0]['*'] : '';
+				page.redirect = rawPage.redirect !== undefined || /^\s*#(REDIRECT|重定向)\s*\[\[/i.test( content );
+				page.missing = rawPage.missing !== undefined;
+				if ( rawPage.revisions ) {
+					page.content = rawPage.revisions[0]['*'];
+					page.baseTimeStamp = rawPage.revisions[0].timestamp;
+				} else {
+					page.content = '';
+					page.baseTimeStamp = null;
+				}
+				page.startTimeStamp = rawPage.starttimestamp;
+				page.editToken = token;
+				results[rawPage.title] = page;
+			}
+			dfd.resolve( results );
+		} ).fail( function( code, data ) {
+			dfd.reject( txt.loadPageError.replace( '$1', pageTitles.join( ', ' ) ).replace( '$2', code ) );
+		} );
+		return dfd.promise();
+	};
+
+	/*
+	 * Pre-fetch the next batch of pages from the links queue into pageCache.
+	 * callback: Optional function called when prefetch completes (success or failure)
+	 */
+	var prefetchNextBatch = function( callback ) {
+		var batch = [];
+		for ( var i = 0; i < links.length && batch.length < cfg.queryTitleLimit; i++ ) {
+			if ( !pageCache.hasOwnProperty( links[i] ) ) {
+				batch.push( links[i] );
+			}
+		}
+		if ( batch.length === 0 ) {
+			if ( callback ) { callback(); }
+			return;
+		}
+		loadPagesBatch( batch ).done( function( results ) {
+			$.extend( pageCache, results );
+			if ( callback ) { callback(); }
+		} ).fail( function( description ) {
+			error( description );
+			if ( callback ) { callback(); }
+		} );
+	};
+
 	/*
 	 * Register changes to a page, to be saved later. Returns a jQuery promise
 	 * (success - no params, failure - error description). Takes the same parameters
