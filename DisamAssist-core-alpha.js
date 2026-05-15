@@ -1127,41 +1127,9 @@
 	 * pageTitle: Title of the page
 	 */
 	var loadPage = function( pageTitle ) {
-		var dfd = new $.Deferred();
-		var api = new mw.Api();
-		api.get( {
-			action: 'query',
-			titles: pageTitle,
-			prop: 'revisions',
-			rvprop: 'timestamp|content',
-			meta: 'tokens',
-			type: 'csrf'
-		} ).done( function( data ) {
-			var pages = data.query.pages;
-			for ( var key in pages ) {
-				if ( pages.hasOwnProperty( key ) ) {
-					break;
-				}
-			}
-			var rawPage = data.query.pages[key];
-			var page = {};
-			var content = rawPage.revisions ? rawPage.revisions[0]['*'] : '';
-			page.redirect = rawPage.redirect !== undefined || /^\s*#(REDIRECT|重定向)\s*\[\[/i.test( content );
-			page.missing = rawPage.missing !== undefined;
-			if ( rawPage.revisions ) {
-				page.content = rawPage.revisions[0]['*'];
-				page.baseTimeStamp = rawPage.revisions[0].timestamp;
-			} else {
-				page.content = '';
-				page.baseTimeStamp = null;
-			}
-			page.startTimeStamp = rawPage.starttimestamp;
-			page.editToken = data.query.tokens.csrftoken;
-			dfd.resolve( page );
-		} ).fail( function( code, data ) {
-			dfd.reject( txt.loadPageError.replace( '$1', pageTitle ).replace( '$2', code ) );
+		return loadPagesBatch( [ pageTitle ] ).then( function( results ) {
+			return results[ pageTitle ];
 		} );
-		return dfd.promise();
 	};
 	
 	/*
@@ -1233,8 +1201,12 @@
 			$.extend( pageCache, results );
 			if ( callback ) { callback(); }
 		} ).fail( function( description ) {
-			error( description );
-			if ( callback ) { callback(); }
+			if ( callback ) {
+				error( description );
+				callback();
+			} else {
+				console.warn( '[DisamAssist] prefetch failed:', description );
+			}
 		} );
 	};
 
