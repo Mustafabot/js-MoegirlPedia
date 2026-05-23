@@ -14,8 +14,8 @@
 	var forceSamePage = false;
 	var running = false;
 	var choosing = false;
-	var canMarkIntentionalLinks = false;
 	var displayedPages = {};
+	var pageCache = {};
 	var editCount = 0;
 	var editLimit;
 	var pendingSaves = [];
@@ -23,7 +23,7 @@
 	var pendingEditBoxText;
 	var lastEditMillis = 0;
 	var runningSaves = false;
-	
+
 	/*
 	 * Entry point. Check whether we are in a disambiguation page. If so, add a link to start the tool
 	 */
@@ -47,7 +47,7 @@
 			} );
 		}
 	};
-	
+
 	/*
 	 * Start the tool. Display the UI and begin looking for links to fix
 	 */
@@ -57,19 +57,17 @@
 			links = [];
 			pageChanges = [];
 			displayedPages = {};
-			ensureDABExists().then( function( canMark ) {
-				canMarkIntentionalLinks = canMark;
-				createUI();
-				addUnloadConfirm();
-				markDisamOptions();
-				checkEditLimit().then( function() {
-					togglePendingEditBox( false );
-					doPage();
-				} );
+			pageCache = {};
+			createUI();
+			addUnloadConfirm();
+			markDisamOptions();
+			checkEditLimit().then( function() {
+				togglePendingEditBox( false );
+				doPage();
 			} );
 		}
 	};
-	
+
 	/*
 	 * Start DisamAssist. Disambiguate incoming links to the current page, regardless
 	 * of the title.
@@ -78,7 +76,7 @@
 		forceSamePage = true;
 		start();
 	};
-	
+
 	/*
 	 * Start DisamAssist. If the page title ends with " (disambiguation)", disambiguate
 	 * links to the primary topic article. Otherwise, disambiguate links to the current
@@ -88,7 +86,7 @@
 		forceSamePage = false;
 		start();
 	};
-	
+
 	/*
 	 * Create and show the user interface.
 	 */
@@ -104,14 +102,13 @@
 			endButton: createButton( txt.close, saveAndEnd ),
 			refreshButton: createButton( txt.refresh, refresh ),
 			titleAsTextButton: createButton( txt.titleAsText, chooseTitleFromPrompt ),
-			intentionalLinkButton: canMarkIntentionalLinks ? createButton( txt.intentionalLink, chooseIntentionalLink ) : $( '<span></span>' ),
 			disamNeededButton: cfg.disamNeededText ? createButton( txt.disamNeeded, chooseDisamNeeded ) : $( '<span></span>' ),
 			removeLinkButton: createButton( txt.removeLink, chooseLinkRemoval )
 		};
 		var top = $( '<div></div>' ).addClass( 'disamassist-top' )
 			.append( [ui.pendingEditCounter, ui.finishedMessage, ui.pageTitleLine] );
 		var leftButtons = $( '<div></div>' ).addClass( 'disamassist-leftbuttons' )
-			.append( [ui.titleAsTextButton, ui.removeLinkButton, ui.intentionalLinkButton, ui.disamNeededButton, ui.omitButton] );
+			.append( [ui.titleAsTextButton, ui.removeLinkButton, ui.disamNeededButton, ui.omitButton] );
 		var rightButtons = $( '<div></div>' ).addClass( 'disamassist-rightbuttons' )
 			.append( [ui.undoButton, ui.refreshButton, ui.endButton] );
 		var allButtons = $( '<div></div>' ).addClass( 'disamassist-allbuttons' )
@@ -123,7 +120,7 @@
 		$( '#mw-content-text' ).before( ui.display );
 		ui.display.hide().fadeIn();
 	};
-	
+
 	/*
 	 * If there are pending changes, show a confirm dialog before closing
 	 */
@@ -136,7 +133,7 @@
 			}
 		});
 	};
-	
+
 	/*
 	 * Mark the disambiguation options as such
 	 */
@@ -169,49 +166,9 @@
 					optionMarkers[ii].text( txt.redirectOptionMarker ).addClass( 'disamassist-curroptionmarker');
 				}
 			}
-		} ).fail( error );	
+		} ).fail( error );
 	};
-	
-	/*
-	 * Check whether intentional links to disambiguation pages can be explicitly marked
-	 * as such in this wiki. If so, ensure that a "Foo (disambiguation)" page exists.
-	 * Returns a jQuery promise
-	 */
-	var ensureDABExists = function() {
-		var dfd = new $.Deferred();
-		var title = getTitle();
-		// That concept doesn't exist in this wiki.
-		if ( !cfg.intentionalLinkOption ) {
-			dfd.resolve( false );
-		// "Foo (disambiguation)" exists: it's the current page.
-		} else if ( new RegExp( cfg.disamRegExp ).exec( title ) ) {
-			dfd.resolve( true );
-		} else {
-			var disamTitle = cfg.disamFormat.replace( '$1', title );
-			loadPage( disamTitle ).done( function( page ) {
-				// "Foo (disambiguation)" doesn't exist.
-				if ( page.missing ) {
-					// We try to create it
-					page.content = cfg.redirectToDisam.replace( '$1', title );
-					var summary = txt.redirectSummary.replace( '$1', title );
-					savePage( disamTitle, page, summary, false, true ).done( function() {
-						dfd.resolve( true );
-					} ).fail( function( description ) {
-						error( description );
-						dfd.resolve( false );
-					} );
-				// It does exist
-				} else {
-					dfd.resolve( true );
-				}
-			} ).fail( function( description ) {
-				error( description );
-				dfd.resolve( false );
-			} );
-		}
-		return dfd.promise();
-	};
-	
+
 	/*
 	 * Check whether the edit cooldown applies and sets editLimit accordingly.
 	 * Returns a jQuery promise
@@ -233,7 +190,7 @@
 		}
 		return dfd.promise();
 	};
-	
+
 	/*
 	 * Find and ask the user to fix all the incoming links to the disambiguation ("target")
 	 * page from a single "origin" page
@@ -263,7 +220,9 @@
 					if ( links.length === 0 ) {
 						updateContext();
 					} else {
-						doPage();
+						prefetchNextBatch( function() {
+							doPage();
+						} );
 					}
 				} );
 			} ).fail( error );
@@ -271,14 +230,39 @@
 			currentPageTitle = links.shift();
 			displayedPages[currentPageTitle] = true;
 			toggleActionButtons( false );
-			loadPage( currentPageTitle ).done( function( data ) {
-				currentPageParameters = data;
+
+			var cachedPage = pageCache[currentPageTitle];
+			if ( cachedPage ) {
+				delete pageCache[currentPageTitle];
+				currentPageParameters = cachedPage;
 				currentLink = null;
+
+				var cacheSize = Object.keys( pageCache ).length;
+				if ( cacheSize <= 1 && links.length > 0 ) {
+					prefetchNextBatch();
+				}
+
 				doLink();
-			} ).fail( error );
+			} else {
+				// Cache miss: 批量加载当前页面 + 剩余未缓存的页面
+				var batchTitles = [ currentPageTitle ];
+				for ( var i = 0; i < links.length && batchTitles.length < cfg.queryTitleLimit; i++ ) {
+					if ( !pageCache.hasOwnProperty( links[i] ) ) {
+						batchTitles.push( links[i] );
+					}
+				}
+				loadPagesBatch( batchTitles ).done( function( results ) {
+					$.extend( pageCache, results );
+					// 从缓存中取出当前页面，确保只消费一次
+					delete pageCache[ currentPageTitle ];
+					currentPageParameters = results[ currentPageTitle ];
+					currentLink = null;
+					doLink();
+				} ).fail( error );
+			}
 		}
 	};
-	
+
 	/*
 	 * Find and ask the user to fix a single incoming link to the disambiguation ("target")
 	 * page
@@ -292,7 +276,7 @@
 			doPage();
 		}
 	};
-	
+
 	/*
 	 * Replace the target of a link with a different one
 	 * pageTitle: New link target
@@ -304,7 +288,7 @@
 			choosing = false;
 			if ( !summary ) {
 				if ( pageTitle ) {
-					summary = txt.summaryChanged.replace( '$1', pageTitle );		
+					summary = txt.summaryChanged.replace( '$1', pageTitle );
 				} else {
 					summary = txt.summaryOmitted;
 				}
@@ -317,15 +301,7 @@
 			doLink();
 		}
 	};
-	
-	/*
-	 * Replace the link with an explicit link to the disambiguation page
-	 */
-	var chooseIntentionalLink = function() {
-		var disamTitle = cfg.disamFormat.replace( '$1', getTargetPage() );
-		chooseReplacement( disamTitle, '', txt.summaryIntentional );
-	};
-	
+
 	/*
 	 * Prompt for an alternative link target and use it as a replacement
 	 */
@@ -335,7 +311,7 @@
 			chooseReplacement( title );
 		}
 	};
-	
+
 	/*
 	 * Remove the current link, leaving the text unchanged
 	 */
@@ -347,14 +323,14 @@
 			doLink();
 		}
 	};
-	
+
 	/*
 	 * Add a "disambiguation needed" template after the link
 	 */
 	var chooseDisamNeeded = function() {
 		chooseReplacement( currentLink.title, cfg.disamNeededText, txt.summaryHelpNeeded );
 	};
-	
+
 	/*
 	 * Undo the last change
 	 */
@@ -375,14 +351,14 @@
 			updateContext();
 		}
 	};
-	
+
 	/*
 	 * Omit the current link without making a change
 	 */
 	var omit = function() {
 		chooseReplacement( null );
 	};
-	
+
 	/*
 	 * Save all the pending changes and restart the tool.
 	 */
@@ -390,19 +366,19 @@
 		saveAndEnd();
 		start();
 	};
-	
+
 	/*
 	 * Enable or disable the buttons that can perform actions on a page or change the current link.
 	 * enabled: Whether to enable or disable the buttons
 	 */
 	var toggleActionButtons = function( enabled ) {
 		var affectedButtons = [ui.omitButton, ui.titleAsTextButton, ui.removeLinkButton,
-			ui.intentionalLinkButton, ui.disamNeededButton, ui.undoButton];
+			ui.disamNeededButton, ui.undoButton];
 		$.each( affectedButtons, function( ii, button ) {
 			button.prop( 'disabled', !enabled );
-		} );	
+		} );
 	};
-	
+
 	/*
 	 * Show or hide the 'no more links' message
 	 * show: Whether to show or hide the message
@@ -414,7 +390,7 @@
 		ui.pageTitleLine.toggle( !show );
 		ui.context.toggle( !show );
 	};
-	
+
 	var togglePendingEditBox = function( show ) {
 		if ( pendingEditBox === null ) {
 			pendingEditBox = $( '<div></div>' ).addClass( 'disamassist-box disamassist-pendingeditbox' );
@@ -433,7 +409,7 @@
 			pendingEditBox.fadeOut();
 		}
 	};
-	
+
 	var notifyCompletion = function() {
 		var oldTitle = document.title;
 		document.title = txt.notifyCharacter + document.title;
@@ -441,7 +417,7 @@
 			document.title = oldTitle;
 		} );
 	};
-	
+
 	/*
 	 * Update the displayed information to match the current link
 	 * or lack thereof
@@ -467,12 +443,11 @@
 			toggleFinishedMessage( false );
 			ui.undoButton.prop( 'disabled', pageChanges.length === 0 );
 			ui.removeLinkButton.prop( 'disabled', currentPageParameters.redirect );
-			ui.intentionalLinkButton.prop( 'disabled', currentPageParameters.redirect );
 			ui.disamNeededButton.prop( 'disabled', currentPageParameters.redirect || currentLink.hasDisamTemplate );
 			choosing = true;
 		}
 	};
-	
+
 	/*
 	 * Update the count of pending changes
 	 */
@@ -494,7 +469,7 @@
 			pendingEditBoxText.text( txt.pendingEditBox.replace( '$1', textContent ) );
 		}
 	};
-	
+
 	/*
 	 * Apply the changes made to an "origin" page
 	 * pageChange: Change that will be saved
@@ -514,7 +489,7 @@
 			updateEditCounter();
 		}
 	};
-	
+
 	/*
 	 * Save all the pending changes
 	 */
@@ -524,7 +499,7 @@
 		}
 		pageChanges = [];
 	};
-	
+
 	/*
 	 * Record a new pending change
 	 * pageTitle: Title of the page
@@ -548,14 +523,14 @@
 		lastPageChange.links.push( link );
 		lastPageChange.summary.push( summary );
 	};
-	
+
 	/*
 	 * Check whether actual changes are stored in the history array
 	 */
 	var checkActualChanges = function() {
 		return countActualChanges() !== 0;
 	};
-	
+
 	/*
 	 * Return the number of entries in the history array that represent actual changes
 	 */
@@ -566,9 +541,9 @@
 				changeCount++;
 			}
 		}
-		return changeCount;		
+		return changeCount;
 	};
-	
+
 	/*
 	 * Return the number of changed pages in the history array, ignoring the last entry
 	 * if we aren't done with that page yet
@@ -584,7 +559,7 @@
 		}
 		return changeCount;
 	};
-	
+
 	/*
 	 * Find the links to disambiguation options in a disambiguation page
 	 */
@@ -601,7 +576,7 @@
 		applyAllChanges();
 		end();
 	};
-	
+
 	/*
 	 * Close the tool
 	 */
@@ -618,7 +593,7 @@
 			}
 		} } );
 	};
-	
+
 	/*
 	 * Display an error message
 	 */
@@ -633,7 +608,7 @@
 		nextElement.before( errorBox );
 		errorBox.hide().fadeIn();
 	}
-	
+
 	/*
 	 * Change a link so that it points to the title
 	 * text: The wikitext of the whole page
@@ -660,7 +635,7 @@
 		var linkEnd = text.substring( link.end );
 		return linkStart + '[[' + newContent + ']]' + link.afterDescription + ( extra || '' ) + linkEnd;
 	};
-	
+
 	/*
 	 * Remove a link from the text
 	 * text: The wikitext of the whole page
@@ -671,7 +646,7 @@
 		var linkEnd = text.substring( link.end );
 		return linkStart + link.description + link.afterDescription + linkEnd;
 	};
-	
+
 	/*
 	 * Extract a link from a string in wiki format,
 	 * starting from a given index. Return a link if one can be found,
@@ -718,9 +693,9 @@
 		}
 		return null;
 	};
-	
+
 	/*
-	 * Extract a link to one of a number of destination pages from a string 
+	 * Extract a link to one of a number of destination pages from a string
 	 * ("text") in wiki format, starting from a given index ("lastIndex").
 	 * "Disambiguation needed" templates are included as part of the links.
 	 * text: Page in wiki format
@@ -739,33 +714,33 @@
 			&& ( !link.possiblyAmbiguous || !isLinkToDisamTarget( title ) ) );
 		return link;
 	};
-	
+
 	var variantLookupTable = {};
-	
+
 	var isLinkToDisamTarget = function( title ) {
 		return variantLookupTable.hasOwnProperty( title );
 	};
-	
+
 	var buildVariantLookupTable = function( destinations, callback ) {
 		variantLookupTable = {};
 		$.each( destinations, function( _, dest ) {
 			variantLookupTable[dest] = true;
 		} );
-		
+
 		if ( !cfg.enableVariantConversion ) {
 			callback();
 			return;
 		}
-		
+
 		var variants = ['zh-hans', 'zh-hant', 'zh-cn', 'zh-tw', 'zh-hk'];
 		var totalRequests = destinations.length * variants.length;
 		var completedRequests = 0;
-		
+
 		if ( totalRequests === 0 ) {
 			callback();
 			return;
 		}
-		
+
 		$.each( destinations, function( idx, dest ) {
 			$.each( variants, function( _, variant ) {
 				$.ajax( {
@@ -797,7 +772,7 @@
 			} );
 		} );
 	};
-	
+
 	/*
 	 * Find the "target" page: either the one we are in or the "main" one found by extracting
      * the title from ".* (disambiguation)" or whatever the appropiate local format is
@@ -806,14 +781,14 @@
 		var title = getTitle();
 		return forceSamePage ? title : removeDisam(title);
 	};
-	
+
 	/*
 	 * Get the page title, with the namespace prefix if any.
 	 */
 	var getTitle = function() {
 		return mw.config.get( 'wgPageName' ).replace(/_/g, ' ')
 	}
-	
+
 	/*
 	 * Extract a "main" title from ".* (disambiguation)" or whatever the appropiate local format is
 	 */
@@ -821,7 +796,7 @@
 		var match = new RegExp( cfg.disamRegExp ).exec( title );
 		return match ? match[1] : title;
 	};
-	
+
 	/*
 	 * Check whether two page titles are the same
 	 */
@@ -837,11 +812,11 @@
 			title = new mw.Title( title ).getPrefixedText();
 		} catch ( ex ) {
 			// mw.Title seems to be buggy, and some valid titles are rejected
-			// FIXME: This may cause false negatives	
+			// FIXME: This may cause false negatives
 		}
 		return title;
 	};
-	
+
 	/*
 	 * Extract the context around a given link in a text string
 	 */
@@ -876,7 +851,7 @@
 			return null;
 		}
 	};
-	
+
 	/*
 	 * Extract the page name from a link, as is
 	 */
@@ -897,7 +872,7 @@
 		}
 		return null;
 	};
-	
+
 	/*
 	 * Check whether this is a disambiguation page
 	 */
@@ -910,7 +885,7 @@
 		}
 		return false;
 	};
-	
+
 	var secondsToHHMMSS = function( totalSeconds ) {
 		var hhmmss = '';
 		var hours = Math.floor( totalSeconds / 3600 );
@@ -922,7 +897,7 @@
 		hhmmss += pad( minutes, '0', 2 ) + ':' + pad( seconds, '0', 2 );
 		return hhmmss;
 	};
-	
+
 	var pad = function( str, z, width ) {
 		str = str.toString();
 		if ( str.length >= width ) {
@@ -931,7 +906,7 @@
 			return new Array( width - str.length + 1 ).join( z ) + str;
 		}
 	}
-	
+
 	/*
 	 * Create a new button
 	 * text: Text that will be displayed on the button
@@ -942,7 +917,7 @@
 		button.addClass( 'disamassist-button' ).click( onClick );
 		return button;
 	};
-	
+
 	/*
 	 * Given a page title and an array of possible redirects {from, to} ("canonical titles"), find the page
 	 * at the end of the redirect chain, if there is one. Otherwise, return the page title that was passed
@@ -969,7 +944,7 @@
 		// no more redirects. We are done
 		return currentPage;
 	};
-	
+
 	/*
 	 * Fetch the incoming links to a page. Returns a jQuery promise
 	 * (success - array of titles of pages that contain links to the target page and
@@ -980,7 +955,7 @@
 	var getBacklinks = function( page ) {
 		var dfd = new $.Deferred();
 		var api = new mw.Api();
-		
+
 		// 递归函数处理分页
 		var fetchBacklinks = function( page, continueParam ) {
 			var params = {
@@ -991,17 +966,18 @@
 				'bllimit': cfg.backlinkLimit,
 				'blnamespace': cfg.targetNamespaces.join( '|' )
 			};
-			
+
 			// 如果有continue参数，则添加到请求中
 			if ( continueParam ) {
-				params.blcontinue = continueParam;
+				params.blcontinue = continueParam.blcontinue;
+				params.continue = continueParam.continue;
 			}
-			
+
 			return api.get( params ).then( function( data ) {
 				// 收集当前页的反向链接
 				var backlinks = [];
 				var linkTitles = [];
-				
+
 				$.each( data.query.backlinks, function() {
 					backlinks.push( this.title );
 					if ( this.redirlinks ) {
@@ -1011,37 +987,36 @@
 						} );
 					}
 				} );
-				
+
 				// 检查是否有更多结果
 				if ( data.continue && data.continue.blcontinue ) {
 					// 递归获取下一页结果
-					return fetchBacklinks( page, data.continue.blcontinue ).then( function( nextResult ) {
+					return fetchBacklinks( page, data.continue ).then( function( nextResult ) {
 						// 合并结果
 						return {
 							backlinks: backlinks.concat( nextResult.backlinks ),
 							linkTitles: linkTitles.concat( nextResult.linkTitles )
 						};
 					} );
-				} else {
-					// 没有更多结果，返回当前结果
-					return $.Deferred().resolve( {
-						backlinks: backlinks,
-						linkTitles: linkTitles
-					} );
 				}
+				// 没有更多结果，返回当前结果
+				return {
+					backlinks: backlinks,
+					linkTitles: linkTitles
+				};
 			} );
 		};
-		
+
 		// 开始获取反向链接
 		fetchBacklinks( page ).then( function( result ) {
 			dfd.resolve( result.backlinks, result.linkTitles );
 		} ).fail( function( code, data ) {
 			dfd.reject( txt.getBacklinksError.replace( '$1', code ) );
 		} );
-		
+
 		return dfd.promise();
 	};
-	
+
 	/*
 	 * Download a list of redirects for some pages. Returns a jQuery callback (success -
 	 * array of redirects ({from, to}), failure - error description )
@@ -1050,29 +1025,28 @@
 	var fetchRedirects = function( pageTitles ) {
 		var dfd = new $.Deferred();
 		var api = new mw.Api();
-		var currentTitles = pageTitles.slice( 0, cfg.queryTitleLimit );
-		var restTitles = pageTitles.slice( cfg.queryTitleLimit );
-		api.get( {
-			action: 'query',
-			titles: currentTitles.join( '|' ),
-			redirects: true
-		} ).done( function( data ) {
-			var theseRedirects = data.query.redirects ? data.query.redirects : [];
-			if ( restTitles.length !== 0 ) {
-				fetchRedirects( restTitles ).done( function( redirects ) {
-					dfd.resolve( theseRedirects.concat( redirects ) );
-				} ).fail( function( description ) {
-					dfd.reject( description );
-				} );
-			} else {
-				dfd.resolve( theseRedirects );
+		var allRedirects = [];
+		var fetchNext = function( index ) {
+			if ( index >= pageTitles.length ) {
+				dfd.resolve( allRedirects );
+				return;
 			}
-		} ).fail( function( code, data ) {
-			dfd.reject( txt.fetchRedirectsError.replace( '$1', code ) );
-		} );
+			api.get( {
+				action: 'query',
+				titles: pageTitles[index],
+				redirects: true
+			} ).done( function( data ) {
+				var theseRedirects = data.query.redirects ? data.query.redirects : [];
+				allRedirects = allRedirects.concat( theseRedirects );
+				fetchNext( index + 1 );
+			} ).fail( function( code, data ) {
+				dfd.reject( txt.fetchRedirectsError.replace( '$1', code ) );
+			} );
+		};
+		fetchNext( 0 );
 		return dfd.promise();
 	};
-	
+
 	/*
 	 * Download the list of user rights for the current user. Returns a
 	 * jQuery promise (success - array of right names, error - error description)
@@ -1091,54 +1065,100 @@
 		} );
 		return dfd.promise();
 	};
-	
+
 	/*
 	 * Load the raw page text for a given title. Returns a jQuery promise (success - page
 	 * content, failure - error description)
 	 * pageTitle: Title of the page
 	 */
 	var loadPage = function( pageTitle ) {
+		return loadPagesBatch( [ pageTitle ] ).then( function( results ) {
+			return results[ pageTitle ];
+		} );
+	};
+
+	/*
+	 * Load multiple pages at once. Returns a jQuery promise (success - mapping
+	 * of title to page data, failure - error description)
+	 * pageTitles: Array of page titles
+	 */
+	var loadPagesBatch = function( pageTitles ) {
 		var dfd = new $.Deferred();
+		if ( pageTitles.length === 0 ) {
+			dfd.resolve( {} );
+			return dfd.promise();
+		}
 		var api = new mw.Api();
 		api.get( {
 			action: 'query',
-			titles: pageTitle,
+			titles: pageTitles.join( '|' ),
 			prop: 'revisions',
 			rvprop: 'timestamp|content',
 			meta: 'tokens',
 			type: 'csrf'
 		} ).done( function( data ) {
 			var pages = data.query.pages;
+			var token = data.query.tokens.csrftoken;
+			var results = {};
 			for ( var key in pages ) {
-				if ( pages.hasOwnProperty( key ) ) {
-					break;
+				if ( !pages.hasOwnProperty( key ) ) {
+					continue;
 				}
+				var rawPage = pages[key];
+				var page = {};
+				var content = rawPage.revisions ? rawPage.revisions[0]['*'] : '';
+				page.redirect = rawPage.redirect !== undefined || /^\s*#(REDIRECT|重定向)\s*\[\[/i.test( content );
+				page.missing = rawPage.missing !== undefined;
+				if ( rawPage.revisions ) {
+					page.content = rawPage.revisions[0]['*'];
+					page.baseTimeStamp = rawPage.revisions[0].timestamp;
+				} else {
+					page.content = '';
+					page.baseTimeStamp = null;
+				}
+				page.startTimeStamp = rawPage.starttimestamp;
+				page.editToken = token;
+				results[rawPage.title] = page;
 			}
-			var rawPage = data.query.pages[key];
-			var page = {};
-			var content = rawPage.revisions ? rawPage.revisions[0]['*'] : '';
-			page.redirect = rawPage.redirect !== undefined || /^\s*#(REDIRECT|重定向)\s*\[\[/i.test( content );
-			page.missing = rawPage.missing !== undefined;
-			if ( rawPage.revisions ) {
-				page.content = rawPage.revisions[0]['*'];
-				page.baseTimeStamp = rawPage.revisions[0].timestamp;
-			} else {
-				page.content = '';
-				page.baseTimeStamp = null;
-			}
-			page.startTimeStamp = rawPage.starttimestamp;
-			page.editToken = data.query.tokens.csrftoken;
-			dfd.resolve( page );
+			dfd.resolve( results );
 		} ).fail( function( code, data ) {
-			dfd.reject( txt.loadPageError.replace( '$1', pageTitle ).replace( '$2', code ) );
+			dfd.reject( txt.loadPageError.replace( '$1', pageTitles.join( ', ' ) ).replace( '$2', code ) );
 		} );
 		return dfd.promise();
 	};
-	
+
+	/*
+	 * Pre-fetch the next batch of pages from the links queue into pageCache.
+	 * callback: Optional function called when prefetch completes (success or failure)
+	 */
+	var prefetchNextBatch = function( callback ) {
+		var batch = [];
+		for ( var i = 0; i < links.length && batch.length < cfg.queryTitleLimit; i++ ) {
+			if ( !pageCache.hasOwnProperty( links[i] ) ) {
+				batch.push( links[i] );
+			}
+		}
+		if ( batch.length === 0 ) {
+			if ( callback ) { callback(); }
+			return;
+		}
+		loadPagesBatch( batch ).done( function( results ) {
+			$.extend( pageCache, results );
+			if ( callback ) { callback(); }
+		} ).fail( function( description ) {
+			if ( callback ) {
+				error( description );
+				callback();
+			} else {
+				console.warn( '[DisamAssist] prefetch failed:', description );
+			}
+		} );
+	};
+
 	/*
 	 * Register changes to a page, to be saved later. Returns a jQuery promise
 	 * (success - no params, failure - error description). Takes the same parameters
-	 * as savePage 
+	 * as savePage
 	 */
 	var saveWithCooldown = function() {
 		var deferred = new $.Deferred();
@@ -1148,7 +1168,7 @@
 		}
 		return deferred.promise();
 	};
-	
+
 	/*
 	 * Save the first set of changes in the list of pending changes, providing that
 	 * enough time has passed since the last edit
@@ -1176,7 +1196,7 @@
 			lastEditMillis = new Date().getTime();
 		}
 	};
-	
+
 	/*
 	 * Save the changes made to a page. Returns a jQuery promise (success - no params,
 	 * failure - error description)
@@ -1208,7 +1228,7 @@
 		} );
 		return dfd.promise();
 	};
-	
+
 	install();
 } )( mediaWiki, jQuery );
 
