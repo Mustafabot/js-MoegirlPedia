@@ -16,6 +16,7 @@
 	var choosing = false;
 	var displayedPages = {};
 	var pageCache = {};
+	var prefetchInProgress = false;
 	var editCount = 0;
 	var editLimit;
 	var pendingSaves = [];
@@ -58,6 +59,7 @@
 			pageChanges = [];
 			displayedPages = {};
 			pageCache = {};
+			prefetchInProgress = false;
 			createUI();
 			addUnloadConfirm();
 			markDisamOptions();
@@ -244,21 +246,30 @@
 
 				doLink();
 			} else {
-				// Cache miss: 批量加载当前页面 + 剩余未缓存的页面
-				var batchTitles = [ currentPageTitle ];
-				for ( var i = 0; i < links.length && batchTitles.length < cfg.queryTitleLimit; i++ ) {
-					if ( !pageCache.hasOwnProperty( links[i] ) ) {
-						batchTitles.push( links[i] );
+				// Cache miss: 如果预取正在进行中，只加载当前页面，避免重复请求
+				if ( prefetchInProgress ) {
+					loadPage( currentPageTitle ).done( function( result ) {
+						currentPageParameters = result;
+						currentLink = null;
+						doLink();
+					} ).fail( error );
+				} else {
+					// 预取未在运行，批量加载当前页面 + 剩余未缓存的页面
+					var batchTitles = [ currentPageTitle ];
+					for ( var i = 0; i < links.length && batchTitles.length < cfg.queryTitleLimit; i++ ) {
+						if ( !pageCache.hasOwnProperty( links[i] ) ) {
+							batchTitles.push( links[i] );
+						}
 					}
+					loadPagesBatch( batchTitles ).done( function( results ) {
+						$.extend( pageCache, results );
+						// 从缓存中取出当前页面，确保只消费一次
+						delete pageCache[ currentPageTitle ];
+						currentPageParameters = results[ currentPageTitle ];
+						currentLink = null;
+						doLink();
+					} ).fail( error );
 				}
-				loadPagesBatch( batchTitles ).done( function( results ) {
-					$.extend( pageCache, results );
-					// 从缓存中取出当前页面，确保只消费一次
-					delete pageCache[ currentPageTitle ];
-					currentPageParameters = results[ currentPageTitle ];
-					currentLink = null;
-					doLink();
-				} ).fail( error );
 			}
 		}
 	};
@@ -1132,6 +1143,10 @@
 	 * callback: Optional function called when prefetch completes (success or failure)
 	 */
 	var prefetchNextBatch = function( callback ) {
+		if ( prefetchInProgress ) {
+			if ( callback ) { callback(); }
+			return;
+		}
 		var batch = [];
 		for ( var i = 0; i < links.length && batch.length < cfg.queryTitleLimit; i++ ) {
 			if ( !pageCache.hasOwnProperty( links[i] ) ) {
@@ -1142,10 +1157,13 @@
 			if ( callback ) { callback(); }
 			return;
 		}
+		prefetchInProgress = true;
 		loadPagesBatch( batch ).done( function( results ) {
 			$.extend( pageCache, results );
+			prefetchInProgress = false;
 			if ( callback ) { callback(); }
 		} ).fail( function( description ) {
+			prefetchInProgress = false;
 			if ( callback ) {
 				error( description );
 				callback();
