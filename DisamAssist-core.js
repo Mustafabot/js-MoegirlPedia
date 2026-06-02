@@ -757,11 +757,6 @@
 			variantLookupTable[dest] = true;
 		} );
 
-		if ( !cfg.enableVariantConversion ) {
-			callback();
-			return;
-		}
-
 		var variants = ['zh-hans', 'zh-hant', 'zh-cn', 'zh-tw', 'zh-hk'];
 		var totalRequests = destinations.length * variants.length;
 		var completedRequests = 0;
