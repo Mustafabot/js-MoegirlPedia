@@ -1,5 +1,9 @@
 (function ($) {
-	const { conv } = require('ext.gadget.HanAssist');
+	const TRAD_VARIANTS = ['zh-hant', 'zh-tw', 'zh-hk', 'zh-mo'];
+	const detectVariant = () => {
+		const variant = mw.config.get('wgUserVariant') || mw.config.get('wgUserLanguage') || 'zh-hans';
+		return TRAD_VARIANTS.includes(variant) ? 'zh-hant' : 'zh-hans';
+	};
 	
 	var nsNumber = mw.config.get('wgNamespaceNumber'),
 		origPageName = mw.config.get('wgPageName'),
@@ -26,8 +30,7 @@
 
 	var _TR,
 		_findRedirectCallbacks = [],
-		_pageWithRedirectTextSuffix = {},
-		_redirectExcludes = {};
+		_pageWithRedirectTextSuffix = {};
 	var _nsCanonPrefix = origPageName.split(':')[0] + ':',
 		_nsPrefixPattern = $.map(mw.config.get('wgNamespaceIds'), function (nsid, text) {
 			return nsid === nsNumber ? text : null;
@@ -112,11 +115,11 @@
 		msg: null,
 		tabselem: null,
 		tagselem: null,
-		variants: ['zh-hans', 'zh-hant', 'zh-cn', 'zh-hk', 'zh-mo', 'zh-sg', 'zh-tw'],
 		init: function () {
 			if (!this.msg) {
 				return;
 			} // not setup correctly
+			mw.util.addCSS('.tools-redirect_methods-link + .tools-redirect_methods-link { margin-left: 0.4em; }');
 			var self = this,
 				btn = $(mw.util.addPortletLink('p-views', '#', this.msg.btntitle, 'ca-redirect', this.msg.btndesc, null, '#ca-watch')).addClass('collapsible').css('cursor', 'pointer');
 			btn.click(function (evt) {
@@ -228,7 +231,7 @@
 								token: data.query.tokens.csrftoken,
 								text: self.addRedirectTextSuffix(page.title, text),
 								summary: summary,
-								tags: 'ToolsRedirect',
+								tag:'Automation tool',
 							})
 						)
 					);
@@ -255,8 +258,8 @@
 								token: data.query.tokens.csrftoken,
 								text: newContent,
 								summary: summary,
-								tags: 'ToolsRedirect',
 								basetimestamp: page.revisions[0].timestamp,
+								tag: 'Automation tool',
 							})
 						)
 					);
@@ -352,11 +355,15 @@
 			}
 
 			if ($container.length === 0) {
-				$container = $('<span class="tools-redirect_methods">').appendTo($parent);
+				$container = $('<span class="tools-redirect_methods">');
+				$parent.append(' (', $container, ')');
 			}
 
 			$.each(methods, function (idx, method) {
 				if (!methodExist(method)) {
+					if ($container.children('.tools-redirect_link').length > 0) {
+						$container.append(' | ');
+					}
 					self.buildLink(method).appendTo($container);
 				}
 			});
@@ -492,127 +499,34 @@
 			return deferObj.promise();
 		},
 		findVariants: function (pagename, titles) {
-			var self = this,
-				suffixReg = /^.+?( \(.+?\))$/,
-				retTitles = [],
-				deferreds = [],
-				simpAndTrad = {'zh-hans': true, 'zh-hant': true};
-			$.each(this.variants, function (_, variant) {
-				var xhr = $.ajax(
-					self.buildQuery({
-						action: 'parse',
-						page: pagename,
-						prop: 'displaytitle',
-						variant: variant,
-					})
-				).then(function (data) {
-					var title = fixNamespace(data.parse.displaytitle);
-					if (variant in simpAndTrad) {
-						mw.toolsRedirect.setRedirectTextSuffix(title, '\n{{簡繁重定向}}', SUFFIX_APPEND);
-					}
-					return title;
-				});
-				if (isCategory) {
-					xhr = xhr.then(function (origTitle) {
-						return $.ajax(
-							self.buildQuery({
-								action: 'parse',
-								text: pagename,
-								prop: 'text',
-								variant: variant,
-							})
-						).then(function (data) {
-							var tmpTitle = $(data.parse.text['*'])
-								.text()
-								.replace(/(^\s*|\s*$)/g, '');
-							// should not create redirect categories
-							// if the conversion is already in global table,
-							// or it will mess up a lot
-							_redirectExcludes[tmpTitle] = true;
-							return origTitle;
-						});
-					});
-				}
-				deferreds.push(xhr);
-			});
-			return $.when.apply($, deferreds).then(function () {
-				var suffixes = [];
-				$.each(arguments, function () {
-					var suffix,
-						title = this;
-					// find title suffix,
-					// for example " (济南市)" to "市中区 (济南市)"
-					suffix = suffixReg.exec(title);
-					if (suffix && suffix.length === 2) {
-						suffix = suffix[1];
-					} else {
-						suffix = '';
-					}
-					retTitles.push(title);
-					suffixes.push(suffix);
-				});
-				// append suffixes
-				$.each($.uniqueSort(suffixes), function (_, suffix) {
-					$.merge(
-						retTitles,
-						$.map(titles, function (title) {
-							title = fixNamespace(title);
-							return suffixReg.test(title) ? title : title + suffix;
-						})
-					);
-				});
-				return self.findNotExists($.uniqueSort(retTitles));
-			});
+			return this.findNotExists($.map(titles, function (title) {
+				return fixNamespace(title);
+			}));
 		},
 
 		findNotExists: function (titles) {
 			var self = this,
-				deferreds = [],
-				alltitles = [],
 				excludes = ['用字模式'];
-			titles = titles.join('|');
-			$.each(['zh-hans', 'zh-hant'], function (idx, variant) {
-				deferreds.push($.ajax(self.buildQuery({action: 'parse', text: titles, prop: 'text', variant: variant})));
-			});
-			return $.when.apply($, deferreds).then(function () {
-				$.each(arguments, function () {
-					alltitles = alltitles.concat(
-						$(this[0].parse.text['*'])
-							.text()
-							.replace(/(^\s*|\s*$)/g, '')
-							.split('|')
-					);
-				});
-				alltitles = alltitles.filter(function (v, i, arr) {
-					return arr.indexOf(v) === i;
-				});
-				alltitles = alltitles.join('|');
-				return $.ajax(
-					self.buildQuery({
-						action: 'query',
-						prop: 'info',
-						titles: alltitles,
-					})
-				).then(function (data) {
-					titles = [];
-					$.each(data.query.pages, function (pageid, page) {
-						var title = page.title;
-						if (pageid < 0 && excludes.indexOf(title) === -1) {
-							if (title in _redirectExcludes) {
-								// exclude special titles
-								return;
-							}
-							titles.push(title);
-							if (isCategory) {
-								var target = origPageName.replace(/^Category:/, '');
-								mw.toolsRedirect.setRedirectTextSuffix(title, '\n{{分类重定向|$1}}'.replace('$1', target));
-							}
-							// only set default suffix
-							mw.toolsRedirect.setRedirectTextSuffix(title, '\n{{別名重定向}}', SUFFIX_SETDEFAULT);
+			titles = $.uniqueSort(titles);
+			return $.ajax(
+				self.buildQuery({
+					action: 'query',
+					prop: 'info',
+					titles: titles.join('|'),
+				})
+			).then(function (data) {
+				var result = [];
+				$.each(data.query.pages, function (pageid, page) {
+					var title = page.title;
+					if (pageid < 0 && excludes.indexOf(title) === -1) {
+						result.push(title);
+						if (isCategory) {
+							var target = origPageName.replace(/^Category:/, '');
+							mw.toolsRedirect.setRedirectTextSuffix(title, '\n{{分类重定向|$1}}'.replace('$1', target));
 						}
-					});
-					return titles;
+					}
 				});
+				return result;
 			});
 		},
 
@@ -724,8 +638,68 @@
 			return query;
 		},
 	};
-	$.when(mw.loader.getScript('/w/index.php?title=MediaWiki:Gadget-ToolsRedirect-msg-' + conv({ hans: 'zh-hans', hant: 'zh-hant' }) + '.js&action=raw&ctype=text/javascript'), $.ready).done(function () {
-		_TR.msg = window.tools_redirect_msg;
-		_TR.init();
+	const MSG = {
+		'zh-hans': {
+			btntitle: '重定向',
+			btndesc: '创建和管理本页面的重定向。',
+			dlgtitle: '创建和管理重定向',
+			rediloading: '数据加载中，请稍候……',
+			rediedit: '编辑',
+			selectall: '全选',
+			selectinverse: '反选',
+			tabviewtitle: '查看',
+			tabviewdesc: '以下是指向本页面的重定向页：',
+			tabviewnotfound: '没有找到任何指向本页面的重定向页。',
+			tabviewmulti: '多重',
+			tabviewfix: '修复',
+			fixloading: '请稍候，正在自动修复重定向……',
+			fixtext: '#REDIRECT [[$1]]',
+			fixsummary: '编辑工具：修复多重重定向',
+			tabcreatetitle: '创建',
+			tabcreatedesc: '以下是尚未创建的重定向页：',
+			tabcreatenotfound: '没有找到可以创建的重定向页。',
+			tabcreateall: '全部创建',
+			createloading: '请稍候，正在自动创建重定向……',
+			createtext: '#REDIRECT [[$1]]',
+			createsummary: '编辑工具：自动创建重定向到[[$1]]',
+			errcycleredirect: '无法自动修复：发现循环重定向',
+			refresh: '刷新'
+		},
+		'zh-hant': {
+			btntitle: '重新導向',
+			btndesc: '建立和管理本頁面的重新導向。',
+			dlgtitle: '建立和管理重新導向',
+			rediloading: '資料載入中，請稍候……',
+			rediedit: '編輯',
+			selectall: '全選',
+			selectinverse: '反選',
+			tabviewtitle: '檢視',
+			tabviewdesc: '以下是指向本頁面的重新導向頁面：',
+			tabviewnotfound: '沒有找到任何指向本頁面的重新導向頁面。',
+			tabviewmulti: '多重',
+			tabviewfix: '修復',
+			fixloading: '請稍候，正在自動修復重新導向……',
+			fixtext: '#REDIRECT [[$1]]',
+			fixsummary: '編輯工具：修復多重重新導向',
+			tabcreatetitle: '建立',
+			tabcreatedesc: '以下是尚未建立的重新導向頁面：',
+			tabcreatenotfound: '沒有找到可以建立的重新導向頁面。',
+			tabcreateall: '全部建立',
+			createloading: '請稍候，正在自動建立重新導向……',
+			createtext: '#REDIRECT [[$1]]',
+			createsummary: '編輯工具：自動建立重新導向到[[$1]]',
+			errcycleredirect: '無法自動修復：發現循環重新導向',
+			refresh: '重新整理'
+		}
+	};
+	$(function () {
+		_TR.msg = MSG[detectVariant()];
+		// Vector 2022 皮肤不默认加载 mediawiki.util，需手动加载
+		var loadModules = mw.loader.using || mw.loader.load;
+		loadModules('mediawiki.util').then(function () {
+			_TR.init();
+		}, function () {
+			mw.log.error('[ToolsRedirect] 无法加载 mediawiki.util 模块');
+		});
 	});
 })(jQuery);

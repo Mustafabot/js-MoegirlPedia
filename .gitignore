@@ -12,3 +12,5 @@ ToolsRedirect.md
 .playwright-mcp/
 skills/
 docs/
+.firecrawl/
+AGENTS.md
