@@ -685,43 +685,84 @@
 	 * text: Text from which the link will be extracted
 	 * lastIndex: Index from which the search will start
 	 */
-	var extractLink = function( text, lastIndex ) {
-		// FIXME: Not an actual title regex (lots of false positives
-		// and some false negatives), but hopefully good enough.
-		var titleRegex = /\[\[(.*?)(?:\|(.*?))?]]/g;
-		// Ditto for the template regex. Disambiguation link templates
-		// should be simple enough for this not to matter, though.
-		var templateRegex = /^(\w*[.,:;?!)}\s]*){{\s*([^|{}]+?)\s*(?:\|[^{]*?)?}}/;
-		titleRegex.lastIndex = lastIndex;
-		var match = titleRegex.exec( text );
-		if ( match !== null && match.index !== -1 ) {
-			var possiblyAmbiguous = true;
-			var hasDisamTemplate = false;
-			var end = match.index + 4 + match[1].length + ( match[2] ? 1 + match[2].length : 0 );
-			var afterDescription = '';
-			var rest = text.substring( end );
-			var templateMatch = templateRegex.exec( rest );
-			if ( templateMatch !== null ) {
-				var templateTitle = getCanonicalTitle( templateMatch[2] );
-				if ( $.inArray( templateTitle, cfg.disamLinkTemplates ) !== -1 ) {
-					end += templateMatch[0].length;
-					afterDescription = templateMatch[1].replace(/\s$/, '');
-					hasDisamTemplate = true;
-				} else if ( $.inArray( templateTitle, cfg.disamLinkIgnoreTemplates ) !== -1 ) {
-					possiblyAmbiguous = false;
-				}
-			}
-			return {
-				start: match.index,
-				end: end,
-				possiblyAmbiguous: possiblyAmbiguous,
-				hasDisamTemplate: hasDisamTemplate,
-				title: match[1],
-				description: match[2] ? match[2] : match[1],
-				afterDescription: afterDescription
-			};
+	var extractLink = function( text, lastIndex, maxIndex ) {
+		// 用平衡括号方法正确处理嵌套 [[...]] 结构，
+		// 避免 [[File:...|说明[[目标]]]] 中内层链接被外层吞掉
+		var startRe = /\[\[/g;
+		startRe.lastIndex = lastIndex;
+		var startMatch = startRe.exec( text );
+		if ( startMatch === null ) {
+			return null;
 		}
-		return null;
+		if ( maxIndex !== undefined && startMatch.index >= maxIndex ) {
+			return null;
+		}
+
+		var start = startMatch.index;
+		var i = start + 2;
+		var depth = 1;
+		var firstPipe = -1;
+
+		// 扫描到匹配的 ]]，跟踪嵌套深度
+		while ( i < text.length && depth > 0 ) {
+			if ( text[i] === '[' && text[i + 1] === '[' ) {
+				depth++;
+				i += 2;
+			} else if ( text[i] === ']' && text[i + 1] === ']' ) {
+				depth--;
+				i += 2;
+			} else if ( text[i] === '|' && depth === 1 && firstPipe === -1 ) {
+				firstPipe = i;
+				i++;
+			} else {
+				i++;
+			}
+		}
+
+		if ( depth > 0 ) {
+			// 没有匹配的 ]]
+			return null;
+		}
+
+		var bracketEnd = i; // ]] 之后的位置
+		var title, description;
+		if ( firstPipe >= 0 ) {
+			title = text.substring( start + 2, firstPipe );
+			description = text.substring( firstPipe + 1, bracketEnd - 2 );
+		} else {
+			title = text.substring( start + 2, bracketEnd - 2 );
+			description = title;
+		}
+
+		// 消歧义needed模板处理
+		var templateRegex = /^(\w*[.,:;?!)}\s]*){{\s*([^|{}]+?)\s*(?:\|[^{]*?)?}}/;
+		var possiblyAmbiguous = true;
+		var hasDisamTemplate = false;
+		var afterDescription = '';
+		var end = bracketEnd;
+		var rest = text.substring( end );
+		var templateMatch = templateRegex.exec( rest );
+		if ( templateMatch !== null ) {
+			var templateTitle = getCanonicalTitle( templateMatch[2] );
+			if ( $.inArray( templateTitle, cfg.disamLinkTemplates ) !== -1 ) {
+				end += templateMatch[0].length;
+				afterDescription = templateMatch[1].replace(/\s$/, '');
+				hasDisamTemplate = true;
+			} else if ( $.inArray( templateTitle, cfg.disamLinkIgnoreTemplates ) !== -1 ) {
+				possiblyAmbiguous = false;
+			}
+		}
+
+		return {
+			start: start,
+			end: end,
+			bracketEnd: bracketEnd,
+			possiblyAmbiguous: possiblyAmbiguous,
+			hasDisamTemplate: hasDisamTemplate,
+			title: title,
+			description: description,
+			afterDescription: afterDescription
+		};
 	};
 
 	/*
@@ -732,17 +773,30 @@
 	 * destinations: Array of page titles to look for
 	 * lastIndex: Index from which the search will start
 	 */
-	var extractLinkToPage = function( text, destinations, lastIndex ) {
+	var extractLinkToPage = function( text, destinations, lastIndex, maxIndex ) {
 		var link, title;
 		do {
-			link = extractLink( text, lastIndex );
+			link = extractLink( text, lastIndex, maxIndex );
 			if ( link !== null ) {
-				lastIndex = link.end;
 				title = getCanonicalTitle( link.title );
+
+				// 外层链接是消歧义目标，直接返回
+				if ( link.possiblyAmbiguous && isLinkToDisamTarget( title ) ) {
+					return link;
+				}
+
+				// 外层非目标，但 description 含嵌套链接，递归查找内层
+				if ( link.description && link.description.indexOf( '[[' ) !== -1 ) {
+					var innerLink = extractLinkToPage( text, destinations, link.start + 2, link.bracketEnd - 2 );
+					if ( innerLink !== null ) {
+						return innerLink;
+					}
+				}
+
+				lastIndex = link.end;
 			}
-		} while ( link !== null
-			&& ( !link.possiblyAmbiguous || !isLinkToDisamTarget( title ) ) );
-		return link;
+		} while ( link !== null );
+		return null;
 	};
 
 	var variantLookupTable = {};

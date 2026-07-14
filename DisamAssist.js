@@ -53,7 +53,7 @@ window.DisamAssist = jQuery.extend( true, {
 		/*
 		 *寻找以下命名空间中的页面的消歧义链接（其它命名空间的页面会被忽略）。（参见[[Help:命名空间]]）
 		 */
-		targetNamespaces: [0, 4, 10, 12, 14],
+		targetNamespaces: [0, 4, 10, 12, 14, 118],
 		
 		/*
 		 * 一次性下载的反向链接的数量
