@@ -14,3 +14,4 @@ skills/
 docs/
 .firecrawl/
 AGENTS.md
+.env
