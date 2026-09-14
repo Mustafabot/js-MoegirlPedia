@@ -1306,7 +1306,7 @@
 			watchlist: cfg.watch,
 			minor: minorEdit,
 			bot: botEdit,
-			tags: 'Automation tool|DisamAssist'
+			tags: 'Automation tool'
 		} ).done( function() {
 			dfd.resolve();
 		} ).fail( function( code, data ) {
